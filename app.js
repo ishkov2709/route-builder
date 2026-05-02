@@ -1,4 +1,5 @@
-let map = L.map('map').setView([46.4825, 30.7233], 13);
+// Инициализация карты
+let map = L.map('map').setView([46.97, 32.0], 10);
 
 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
     attribution: '&copy; OpenStreetMap &copy; CARTO'
@@ -20,7 +21,7 @@ function buildRoute() {
     const rawText = document.getElementById("input").value.trim();
     if (!rawText) return;
     
-    const entries = rawText.split(/(?=\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2})/).filter(e => e.trim().length > 20);
+    const entries = rawText.split(/(?=202\d-\d{2}-\d{2})/).filter(e => e.trim().length > 20);
     const listContainer = document.getElementById("route-list");
     let latlngs = [];
 
@@ -31,55 +32,70 @@ function buildRoute() {
         if (matches.length >= 2) {
             const engLat = parseFloat(matches[1][1]);
             const engLng = parseFloat(matches[1][2]);
-
-            let preCoordText = line.split(matches[0][0])[0].trim();
-            let parts = preCoordText.split(/\s+/);
-            let fullTitle = parts.slice(3).join(' '); 
-
             const allWords = line.replace(/\n/g, ' ').split(/\s+/);
-            let mileageValue = "0";
-            let timeValue = "0";
 
-            const statusIdx = allWords.findIndex(w => w.includes("підтверджені"));
+            // 1. ФОРМАТИРУЕМ ДАТУ И ВРЕМЯ (Убираем лишние слова)
+            let rawDate = allWords[0] || "";
+            let dateParts = rawDate.split('-');
+            let formattedDate = dateParts.length === 3 ? `${dateParts[2]}.${dateParts[1]}.${dateParts[0]}` : rawDate;
+            let eventTime = allWords.find(w => (w.match(/:/g) || []).length === 2) || "";
+
+            // 2. ЗАГОЛОВОК
+            let preCoordText = line.split(matches[0][0])[0].trim();
+            let headerParts = preCoordText.split(/\s+/);
+            let fullTitle = headerParts.slice(3).join(' '); 
+
+            // 3. ПРОБЕГ
+            let mileageValue = "0";
+            const statusIdx = allWords.findIndex(w => w.includes("підтверджені") || w.includes("подтверждены"));
             if (statusIdx !== -1 && allWords[statusIdx + 1]) {
-                mileageValue = allWords[statusIdx + 1]; 
+                mileageValue = allWords[statusIdx + 1];
             }
 
+            // 4. ДЛИТЕЛЬНОСТЬ
+            let durationValue = "0";
             const cleanNumbers = allWords.filter(w => {
                 let val = w.replace(',', '.');
-                return !isNaN(parseFloat(val)) && !w.includes('-') && !w.includes(':') && !w.startsWith('46.') && !w.startsWith('32.');
+                return !isNaN(parseFloat(val)) && !w.includes('-') && !w.includes(':') && 
+                       !w.startsWith('46.') && !w.startsWith('47.') && !w.startsWith('31.') && !w.startsWith('32.');
             });
-            
             if (cleanNumbers.length > 0) {
-                timeValue = cleanNumbers[cleanNumbers.length - 1]; 
+                durationValue = cleanNumbers[cleanNumbers.length - 1]; 
             }
 
             if (!isNaN(engLat) && !isNaN(engLng)) {
                 const marker = L.marker([engLat, engLng]).addTo(map);
                 
-                // --- НАСТРОЙКА POPUP (ОКНА НА КАРТЕ) ---
+                // --- ЧИСТЫЙ POPUP БЕЗ ЛИШНИХ СЛОВ ---
                 const popupContent = `
                     <div class="map-popup">
-                        <b style="font-size: 13px; display: block; margin-bottom: 4px;">${fullTitle}</b>
-                        <div style="font-size: 11px; color: #7f8c8d; font-weight: normal;">
-                            Mileage: ${mileageValue}<br>
-                            Time: ${timeValue} min
+                        <b style="font-size: 13px; display: block; margin-bottom: 2px;">${fullTitle}</b>
+                        <div style="font-size: 11px; color: #7f8c8d; margin-bottom: 5px;">
+                            ${formattedDate} <span style="color: #e67e22; font-weight: bold; margin-left: 5px;">${eventTime}</span>
+                        </div>
+                        <div style="font-size: 11px; color: #95a5a6;">
+                            KM: <b>${mileageValue}</b> | Min: <b>${durationValue}</b>
                         </div>
                     </div>
                 `;
                 marker.bindPopup(popupContent, { closeButton: false });
 
+                // --- КАРТОЧКА В СПИСКЕ ---
                 const item = document.createElement("div");
                 item.className = "route-item";
                 item.innerHTML = `
                     <b>${fullTitle}</b>
+                    <div style="font-size: 0.85em; color: #7f8c8d; margin: 3px 0 7px 0;">
+                        <span>📅 ${formattedDate}</span>
+                        <span style="margin-left: 12px; color: #e67e22; font-weight: 500;">🕒 ${eventTime}</span>
+                    </div>
                     <div class="route-data-row">
                         <span>Mileage: <b>${mileageValue}</b></span>
-                        <span>Time: <b>${timeValue} min</b></span>
+                        <span>Time: <b>${durationValue} min</b></span>
                     </div>
                 `;
 
-                // События для связи списка и карты
+                // Интерактив
                 item.onmouseenter = () => {
                     if (marker._icon) marker._icon.style.filter = "hue-rotate(150deg) brightness(1.5)";
                     marker.openPopup();
@@ -88,18 +104,15 @@ function buildRoute() {
                     if (marker._icon) marker._icon.style.filter = "";
                     marker.closePopup();
                 };
-
-                // События наведения на саму точку на карте
-                marker.on('mouseover', function (e) {
+                marker.on('mouseover', function() {
                     this.openPopup();
                     item.classList.add('highlight-list');
                     item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                 });
-                marker.on('mouseout', function (e) {
+                marker.on('mouseout', function() {
                     this.closePopup();
                     item.classList.remove('highlight-list');
                 });
-
                 item.onclick = () => {
                     map.flyTo([engLat, engLng], 16);
                     marker.openPopup();

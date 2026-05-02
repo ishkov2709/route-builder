@@ -2,75 +2,71 @@
 
 body, html {
   margin: 0; padding: 0; height: 100%;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background: #f0f2f5; overflow: hidden;
+  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background: #f4f6f8; overflow: hidden;
 }
 
 .header {
   background: #27ae60; color: white;
-  padding: 15px 25px; font-size: 20px;
-  font-weight: bold; height: 60px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  padding: 0 25px; display: flex; align-items: center;
+  font-size: 18px; font-weight: 600; height: 60px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .container { display: flex; height: calc(100vh - 60px); }
 
 .sidebar {
   width: 380px; padding: 20px;
-  background: white; border-right: 1px solid #ddd;
+  background: white; border-right: 1px solid #e1e4e8;
   display: flex; flex-direction: column; gap: 15px;
 }
 
 textarea {
-  width: 100%; height: 150px;
-  padding: 12px; border-radius: 8px;
-  border: 1px solid #ccc; font-size: 12px;
-  resize: none; outline: none; background: #fafafa;
+  width: 100%; height: 140px;
+  padding: 12px; border-radius: 6px;
+  border: 1px solid #d1d5da; font-size: 12px;
+  resize: none; outline: none; font-family: monospace;
 }
 
 button {
   width: 100%; padding: 12px;
-  border: none; border-radius: 8px;
+  border: none; border-radius: 6px;
   background: #2ecc71; color: white;
-  font-size: 16px; font-weight: 600;
-  cursor: pointer; transition: 0.3s;
+  font-size: 15px; font-weight: 600;
+  cursor: pointer; transition: 0.2s;
 }
 
 button:hover { background: #27ae60; }
 
 .route-list {
   flex: 1; overflow-y: auto;
-  padding-right: 5px;
 }
 
 .route-item {
   padding: 15px; margin-bottom: 12px;
-  background: #fff; border: 1px solid #edf0f2;
-  border-left: 5px solid #2ecc71;
-  border-radius: 6px; cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
+  background: #ffffff; border: 1px solid #e1e4e8;
+  border-left: 4px solid #2ecc71;
+  border-radius: 4px; cursor: pointer;
 }
 
 .route-item:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-  background: #f9fffb;
+  background: #f8f9fa;
+  border-color: #2ecc71;
 }
 
 .route-item b {
-  display: block; color: #2c3e50;
-  font-size: 15px; margin-bottom: 8px;
-  text-transform: uppercase;
+  display: block; color: #24292e;
+  font-size: 14px; margin-bottom: 6px;
+  word-break: break-all;
 }
 
 .route-data-row {
   display: flex; justify-content: space-between;
-  font-size: 13px; color: #7f8c8d;
+  font-size: 12px; color: #586069;
 }
 
 .route-data-row b {
   display: inline; color: #27ae60;
-  text-transform: none;
 }
 
-#map { flex: 1; }
+#map { flex: 1; background: #e5e3df; }

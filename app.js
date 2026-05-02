@@ -20,8 +20,8 @@ function buildRoute() {
     const rawText = document.getElementById("input").value.trim();
     if (!rawText) return;
     
-    // Split by date to handle multiple entries
-    const entries = rawText.split(/(?=202\d-\d{2}-\d{2})/).filter(e => e.trim().length > 20);
+    // Разбивка по дате или по ID (начало новой записи)
+    const entries = rawText.split(/(?=202\d-\d{2}-\d{2})|(?=\d{3}-\d{3}-\d{3})|(?=\d{7,})/).filter(e => e.trim().length > 15);
     const listContainer = document.getElementById("route-list");
     let latlngs = [];
 
@@ -30,28 +30,42 @@ function buildRoute() {
         const matches = [...line.matchAll(coordRegex)];
 
         if (matches.length >= 2) {
-            // Engineer coordinates (2nd pair)
             const engLat = parseFloat(matches[1][1]);
             const engLng = parseFloat(matches[1][2]);
 
-            // 1. Extract and Clean Title
-            const textBeforeCoords = line.split(matches[0][0])[0].trim();
-            const parts = textBeforeCoords.split(/\s+/);
-            // Ignore Date(0), Time(1), ID(2). Filter out noise words.
-            let deviceName = parts.slice(3)
-                .filter(word => !["Поездка", "на", "склад", "POS", "терминал", "терміналы"].includes(word))
-                .join(' ');
+            // 1. Title Extraction: Name + Type
+            // Берем текст перед первыми координатами и убираем дату/время, если они есть
+            let headerText = line.split(matches[0][0])[0].trim();
+            let headerParts = headerText.split(/\s+/);
+            
+            // Если строка начинается с даты, пропускаем первые 3 элемента (дата, время, доп. номер)
+            let startIndex = headerParts[0].includes('-') ? 3 : 0;
+            let fullTitle = headerParts.slice(startIndex).join(' ');
 
-            // 2. Extract Numeric Data (Mileage & Time)
+            // 2. Data Extraction: Mileage & Time
             const endParts = line.trim().split(/\s+/);
-            // Mileage: find the first number appearing after coordinates/status
-            const mileage = endParts.find((p, i) => i > 10 && !isNaN(p.replace(',', '.'))) || "0";
-            // Time: usually the second to last element
+            
+            // Ищем пробег: это первое число после координат (заменяем запятую на точку для парсинга)[cite: 4]
+            let mileageValue = "0";
+            for (let i = 0; i < endParts.length; i++) {
+                if (endParts[i].includes(matches[1][1])) { // Нашли место координат
+                    // Ищем следующее числовое значение[cite: 4]
+                    for (let j = i + 2; j < endParts.length; j++) {
+                        let val = endParts[j].replace(',', '.');
+                        if (!isNaN(parseFloat(val)) && val !== "") {
+                            mileageValue = endParts[j];
+                            break;
+                        }
+                    }
+                    break;
+                }
+            }
+            
             const actualTime = endParts[endParts.length - 2]; 
 
             if (!isNaN(engLat) && !isNaN(engLng)) {
                 const marker = L.marker([engLat, engLng]).addTo(map);
-                marker.bindPopup(`<b>${deviceName}</b>`);
+                marker.bindPopup(`<b>${fullTitle}</b>`);
                 
                 markers.push(marker);
                 latlngs.push([engLat, engLng]);
@@ -59,9 +73,9 @@ function buildRoute() {
                 const item = document.createElement("div");
                 item.className = "route-item";
                 item.innerHTML = `
-                    <b>${deviceName}</b>
+                    <b>${fullTitle}</b>
                     <div class="route-data-row">
-                        <span>Mileage: <b>${mileage}</b></span>
+                        <span>Mileage: <b>${mileageValue}</b></span>
                         <span>Time: <b>${actualTime} min</b></span>
                     </div>
                 `;

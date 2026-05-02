@@ -7,7 +7,7 @@ body, html {
 }
 
 .header {
-  background: linear-gradient(135deg, #2ecc71, #27ae60); /* Тот самый зеленый[cite: 6] */
+  background: linear-gradient(135deg, #2ecc71, #27ae60);
   color: white; padding: 0 25px; display: flex; align-items: center;
   font-size: 20px; font-weight: 600; height: 60px;
   box-shadow: 0 2px 10px rgba(0,0,0,0.1);
@@ -46,10 +46,18 @@ button:hover { background: #27ae60; transform: translateY(-1px); }
   cursor: pointer; transition: 0.2s;
 }
 
+/* Подсветка при наведении на саму карточку[cite: 6] */
 .route-item:hover {
   border-color: #27ae60;
   box-shadow: 0 4px 12px rgba(0,0,0,0.05);
   background: #f0fff4;
+}
+
+/* Подсветка при наведении на маркер карты[cite: 6] */
+.highlight-list {
+  background: #e8f5e9 !important;
+  border-color: #27ae60 !important;
+  transform: scale(1.02);
 }
 
 .route-item b {

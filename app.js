@@ -24,7 +24,7 @@ function buildRoute() {
     const listContainer = document.getElementById("route-list");
     let latlngs = [];
 
-    entries.forEach((line) => {
+    entries.forEach((line, index) => {
         const coordRegex = /(\d{2}\.\d+),\s+(\d{2}\.\d+)/g;
         const matches = [...line.matchAll(coordRegex)];
 
@@ -32,12 +32,10 @@ function buildRoute() {
             const engLat = parseFloat(matches[1][1]);
             const engLng = parseFloat(matches[1][2]);
 
-            // Header extraction: ID + Type[cite: 4]
             let preCoordText = line.split(matches[0][0])[0].trim();
             let parts = preCoordText.split(/\s+/);
             let fullTitle = parts.slice(3).join(' '); 
 
-            // Data extraction[cite: 4]
             const endParts = line.trim().split(/\s+/);
             let mileageValue = "0";
             let foundSecondCoord = false;
@@ -59,11 +57,9 @@ function buildRoute() {
                 const marker = L.marker([engLat, engLng]).addTo(map);
                 marker.bindPopup(`<b>${fullTitle}</b>`);
                 
-                markers.push(marker);
-                latlngs.push([engLat, engLng]);
-
                 const item = document.createElement("div");
                 item.className = "route-item";
+                item.id = `item-${index}`; // ID для поиска из карты[cite: 4]
                 item.innerHTML = `
                     <b>${fullTitle}</b>
                     <div class="route-data-row">
@@ -72,18 +68,32 @@ function buildRoute() {
                     </div>
                 `;
 
-                // Highlight marker on hover[cite: 4]
+                // --- СВЯЗЬ: СПИСОК -> КАРТА ---[cite: 4]
                 item.onmouseenter = () => {
                     if (marker._icon) marker._icon.style.filter = "hue-rotate(150deg) brightness(1.5)";
+                    marker.openPopup();
                 };
                 item.onmouseleave = () => {
                     if (marker._icon) marker._icon.style.filter = "";
+                    marker.closePopup();
                 };
+
+                // --- СВЯЗЬ: КАРТА -> СПИСОК ---[cite: 4]
+                marker.on('mouseover', () => {
+                    item.classList.add('highlight-list');
+                    item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                });
+                marker.on('mouseout', () => {
+                    item.classList.remove('highlight-list');
+                });
 
                 item.onclick = () => {
                     map.flyTo([engLat, engLng], 16);
                     marker.openPopup();
                 };
+
+                markers.push(marker);
+                latlngs.push([engLat, engLng]);
                 listContainer.appendChild(item);
             }
         }
@@ -94,7 +104,5 @@ function buildRoute() {
             color: '#27ae60', weight: 4, opacity: 0.8, dashArray: '5, 10'
         }).addTo(map);
         map.fitBounds(polyline.getBounds(), { padding: [50, 50] });
-    } else if (latlngs.length === 1) {
-        map.setView(latlngs[0], 15);
     }
 }

@@ -20,6 +20,7 @@ function buildRoute() {
     const rawText = document.getElementById("input").value.trim();
     if (!rawText) return;
     
+    // Улучшенная разбивка по дате
     const entries = rawText.split(/(?=\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2})/).filter(e => e.trim().length > 20);
     const listContainer = document.getElementById("route-list");
     let latlngs = [];
@@ -32,26 +33,32 @@ function buildRoute() {
             const engLat = parseFloat(matches[1][1]);
             const engLng = parseFloat(matches[1][2]);
 
+            // --- HEADER ---
             let preCoordText = line.split(matches[0][0])[0].trim();
             let parts = preCoordText.split(/\s+/);
+            // Пропускаем дату (0), время (1) и ID (2)
             let fullTitle = parts.slice(3).join(' '); 
 
-            const endParts = line.trim().split(/\s+/);
+            // --- MILEAGE & TIME LOGIC ---[cite: 4]
+            const allWords = line.replace(/\n/g, ' ').split(/\s+/);
             let mileageValue = "0";
-            let foundSecondCoord = false;
+            let timeValue = "0";
 
-            for (let i = 0; i < endParts.length; i++) {
-                if (endParts[i].includes(matches[1][1])) foundSecondCoord = true;
-                if (foundSecondCoord) {
-                    let val = endParts[i].replace(',', '.');
-                    if (!isNaN(parseFloat(val)) && !val.includes(':') && val.length < 10 && i > (endParts.indexOf(matches[1][1]) + 1)) {
-                        mileageValue = endParts[i];
-                        break;
-                    }
+            // Ищем пробег: число, которое идет ПОСЛЕ фразы "підтверджені"[cite: 4]
+            const statusIdx = allWords.findIndex(w => w.includes("підтверджені"));
+            if (statusIdx !== -1 && allWords[statusIdx + 1]) {
+                let val = allWords[statusIdx + 1].replace(',', '.');
+                if (!isNaN(parseFloat(val))) {
+                    mileageValue = allWords[statusIdx + 1];
                 }
             }
-            
-            const actualTime = endParts[endParts.length - 2]; 
+
+            // Ищем время: обычно это предпоследнее или последнее число в блоке[cite: 4]
+            // Отфильтруем все числа в конце строки[cite: 4]
+            const numericValues = allWords.filter(w => !isNaN(parseFloat(w.replace(',', '.'))) && !w.includes('-') && !w.includes(':'));
+            if (numericValues.length >= 2) {
+                timeValue = numericValues[numericValues.length - 1]; // Последнее число — это время[cite: 4]
+            }
 
             if (!isNaN(engLat) && !isNaN(engLng)) {
                 const marker = L.marker([engLat, engLng]).addTo(map);
@@ -59,16 +66,15 @@ function buildRoute() {
                 
                 const item = document.createElement("div");
                 item.className = "route-item";
-                item.id = `item-${index}`; // ID для поиска из карты[cite: 4]
                 item.innerHTML = `
                     <b>${fullTitle}</b>
                     <div class="route-data-row">
                         <span>Mileage: <b>${mileageValue}</b></span>
-                        <span>Time: <b>${actualTime} min</b></span>
+                        <span>Time: <b>${timeValue} min</b></span>
                     </div>
                 `;
 
-                // --- СВЯЗЬ: СПИСОК -> КАРТА ---[cite: 4]
+                // Hover effects[cite: 4]
                 item.onmouseenter = () => {
                     if (marker._icon) marker._icon.style.filter = "hue-rotate(150deg) brightness(1.5)";
                     marker.openPopup();
@@ -78,7 +84,6 @@ function buildRoute() {
                     marker.closePopup();
                 };
 
-                // --- СВЯЗЬ: КАРТА -> СПИСОК ---[cite: 4]
                 marker.on('mouseover', () => {
                     item.classList.add('highlight-list');
                     item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });

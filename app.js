@@ -20,12 +20,13 @@ function buildRoute() {
     const rawText = document.getElementById("input").value.trim();
     if (!rawText) return;
     
-    // Разбивка по дате или по ID (начало новой записи)
-    const entries = rawText.split(/(?=202\d-\d{2}-\d{2})|(?=\d{3}-\d{3}-\d{3})|(?=\d{7,})/).filter(e => e.trim().length > 15);
+    // Split by date pattern: 2026-05-01 08:15:30[cite: 4]
+    const entries = rawText.split(/(?=\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2})/).filter(e => e.trim().length > 20);
     const listContainer = document.getElementById("route-list");
     let latlngs = [];
 
     entries.forEach((line) => {
+        // Regex to find coordinate pairs (e.g., 47.827094, 31.168991)[cite: 4]
         const coordRegex = /(\d{2}\.\d+),\s+(\d{2}\.\d+)/g;
         const matches = [...line.matchAll(coordRegex)];
 
@@ -33,31 +34,32 @@ function buildRoute() {
             const engLat = parseFloat(matches[1][1]);
             const engLng = parseFloat(matches[1][2]);
 
-            // 1. Title Extraction: Name + Type
-            // Берем текст перед первыми координатами и убираем дату/время, если они есть
-            let headerText = line.split(matches[0][0])[0].trim();
-            let headerParts = headerText.split(/\s+/);
+            // --- HEADER LOGIC ---[cite: 4]
+            // 1. Get everything before the very first coordinate[cite: 4]
+            let preCoordText = line.split(matches[0][0])[0].trim();
             
-            // Если строка начинается с даты, пропускаем первые 3 элемента (дата, время, доп. номер)
-            let startIndex = headerParts[0].includes('-') ? 3 : 0;
-            let fullTitle = headerParts.slice(startIndex).join(' ');
+            // 2. Remove date and time from the start (YYYY-MM-DD HH:MM:SS ID)[cite: 4]
+            // We split by space and skip the first 3 parts (Date, Time, Sheet ID)[cite: 4]
+            let parts = preCoordText.split(/\s+/);
+            let fullTitle = parts.slice(3).join(' '); 
 
-            // 2. Data Extraction: Mileage & Time
+            // --- DATA LOGIC ---[cite: 4]
             const endParts = line.trim().split(/\s+/);
             
-            // Ищем пробег: это первое число после координат (заменяем запятую на точку для парсинга)[cite: 4]
+            // Mileage: find first numeric value after the second set of coordinates[cite: 4]
             let mileageValue = "0";
+            let secondCoordStr = matches[1][0]; 
+            let foundSecondCoord = false;
+
             for (let i = 0; i < endParts.length; i++) {
-                if (endParts[i].includes(matches[1][1])) { // Нашли место координат
-                    // Ищем следующее числовое значение[cite: 4]
-                    for (let j = i + 2; j < endParts.length; j++) {
-                        let val = endParts[j].replace(',', '.');
-                        if (!isNaN(parseFloat(val)) && val !== "") {
-                            mileageValue = endParts[j];
-                            break;
-                        }
+                if (endParts[i].includes(matches[1][1])) foundSecondCoord = true;
+                if (foundSecondCoord) {
+                    // Look for the next element that is a pure number (or has a comma)[cite: 4]
+                    let val = endParts[i].replace(',', '.');
+                    if (!isNaN(parseFloat(val)) && !val.includes(':') && val.length < 10 && i > (endParts.indexOf(matches[1][1]) + 1)) {
+                        mileageValue = endParts[i];
+                        break;
                     }
-                    break;
                 }
             }
             
@@ -91,10 +93,7 @@ function buildRoute() {
 
     if (latlngs.length >= 2) {
         polyline = L.polyline(latlngs, {
-            color: '#27ae60',
-            weight: 4,
-            opacity: 0.8,
-            dashArray: '5, 10'
+            color: '#27ae60', weight: 4, opacity: 0.8, dashArray: '5, 10'
         }).addTo(map);
         map.fitBounds(polyline.getBounds(), { padding: [50, 50] });
     } else if (latlngs.length === 1) {

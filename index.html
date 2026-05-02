@@ -2,25 +2,21 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Route Tracker</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 </head>
 <body>
-
-<div class="header">Route Tracker</div>
-
-<div class="container">
-    <div class="sidebar">
-        <textarea id="input" placeholder="Paste your log data here..."></textarea>
-        <button onclick="buildRoute()">Build Route</button>
-        <div id="route-list" class="route-list"></div>
+    <div class="header">Route Tracker</div>
+    <div class="container">
+        <div class="sidebar">
+            <textarea id="input" placeholder="Paste logs here..."></textarea>
+            <button onclick="buildRoute()">Build Route</button>
+            <div id="route-list" class="route-list"></div>
+        </div>
+        <div id="map"></div>
     </div>
-    <div id="map"></div>
-</div>
-
-<script src="app.js"></script>
+    <script src="app.js"></script>
 </body>
 </html>

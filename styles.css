@@ -2,71 +2,61 @@
 
 body, html {
   margin: 0; padding: 0; height: 100%;
-  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  background: #f4f6f8; overflow: hidden;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: #f8fafc; overflow: hidden;
 }
 
 .header {
-  background: #27ae60; color: white;
-  padding: 0 25px; display: flex; align-items: center;
+  background: #1a202c; color: #f7fafc;
+  padding: 0 20px; display: flex; align-items: center;
   font-size: 18px; font-weight: 600; height: 60px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .container { display: flex; height: calc(100vh - 60px); }
 
 .sidebar {
-  width: 380px; padding: 20px;
-  background: white; border-right: 1px solid #e1e4e8;
+  width: 400px; padding: 20px;
+  background: white; border-right: 1px solid #e2e8f0;
   display: flex; flex-direction: column; gap: 15px;
 }
 
 textarea {
-  width: 100%; height: 140px;
+  width: 100%; height: 120px;
   padding: 12px; border-radius: 6px;
-  border: 1px solid #d1d5da; font-size: 12px;
-  resize: none; outline: none; font-family: monospace;
+  border: 1px solid #cbd5e0; font-size: 11px;
+  resize: none; outline: none; background: #edf2f7;
+  font-family: 'Courier New', Courier, monospace;
 }
 
 button {
-  width: 100%; padding: 12px;
-  border: none; border-radius: 6px;
-  background: #2ecc71; color: white;
-  font-size: 15px; font-weight: 600;
-  cursor: pointer; transition: 0.2s;
+  width: 100%; padding: 12px; border: none; border-radius: 6px;
+  background: #38a169; color: white; font-size: 15px;
+  font-weight: 600; cursor: pointer; transition: 0.2s;
 }
 
-button:hover { background: #27ae60; }
+button:hover { background: #2f855a; }
 
-.route-list {
-  flex: 1; overflow-y: auto;
-}
+.route-list { flex: 1; overflow-y: auto; }
 
 .route-item {
   padding: 15px; margin-bottom: 12px;
-  background: #ffffff; border: 1px solid #e1e4e8;
-  border-left: 4px solid #2ecc71;
-  border-radius: 4px; cursor: pointer;
+  background: #fff; border: 1px solid #e2e8f0;
+  border-left: 4px solid #38a169; border-radius: 4px;
+  cursor: pointer; transition: 0.15s;
 }
 
-.route-item:hover {
-  background: #f8f9fa;
-  border-color: #2ecc71;
-}
+.route-item:hover { border-color: #38a169; background: #f0fff4; }
 
 .route-item b {
-  display: block; color: #24292e;
-  font-size: 14px; margin-bottom: 6px;
-  word-break: break-all;
+  display: block; color: #2d3748; font-size: 13px;
+  margin-bottom: 8px; line-height: 1.4;
 }
 
 .route-data-row {
   display: flex; justify-content: space-between;
-  font-size: 12px; color: #586069;
+  font-size: 12px; color: #718096;
 }
 
-.route-data-row b {
-  display: inline; color: #27ae60;
-}
+.route-data-row b { display: inline; color: #38a169; }
 
-#map { flex: 1; background: #e5e3df; }
+#map { flex: 1; }

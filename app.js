@@ -34,25 +34,25 @@ function buildRoute() {
             const engLng = parseFloat(matches[1][2]);
             const allWords = line.replace(/\n/g, ' ').split(/\s+/);
 
-            // 1. ФОРМАТИРУЕМ ДАТУ И ВРЕМЯ (Убираем лишние слова)
+            // 1. Форматирование Даты и Времени
             let rawDate = allWords[0] || "";
             let dateParts = rawDate.split('-');
             let formattedDate = dateParts.length === 3 ? `${dateParts[2]}.${dateParts[1]}.${dateParts[0]}` : rawDate;
             let eventTime = allWords.find(w => (w.match(/:/g) || []).length === 2) || "";
 
-            // 2. ЗАГОЛОВОК
+            // 2. Заголовок (название точки)
             let preCoordText = line.split(matches[0][0])[0].trim();
             let headerParts = preCoordText.split(/\s+/);
             let fullTitle = headerParts.slice(3).join(' '); 
 
-            // 3. ПРОБЕГ
+            // 3. Пробег (KM)
             let mileageValue = "0";
             const statusIdx = allWords.findIndex(w => w.includes("підтверджені") || w.includes("подтверждены"));
             if (statusIdx !== -1 && allWords[statusIdx + 1]) {
                 mileageValue = allWords[statusIdx + 1];
             }
 
-            // 4. ДЛИТЕЛЬНОСТЬ
+            // 4. Длительность (Min)
             let durationValue = "0";
             const cleanNumbers = allWords.filter(w => {
                 let val = w.replace(',', '.');
@@ -66,7 +66,7 @@ function buildRoute() {
             if (!isNaN(engLat) && !isNaN(engLng)) {
                 const marker = L.marker([engLat, engLng]).addTo(map);
                 
-                // --- ЧИСТЫЙ POPUP БЕЗ ЛИШНИХ СЛОВ ---
+                // POPUP на карте
                 const popupContent = `
                     <div class="map-popup">
                         <b style="font-size: 13px; display: block; margin-bottom: 2px;">${fullTitle}</b>
@@ -80,7 +80,7 @@ function buildRoute() {
                 `;
                 marker.bindPopup(popupContent, { closeButton: false });
 
-                // --- КАРТОЧКА В СПИСКЕ ---
+                // КАРТОЧКА в списке (теперь тоже KM и Min)
                 const item = document.createElement("div");
                 item.className = "route-item";
                 item.innerHTML = `
@@ -89,9 +89,9 @@ function buildRoute() {
                         <span>📅 ${formattedDate}</span>
                         <span style="margin-left: 12px; color: #e67e22; font-weight: 500;">🕒 ${eventTime}</span>
                     </div>
-                    <div class="route-data-row">
-                        <span>Mileage: <b>${mileageValue}</b></span>
-                        <span>Time: <b>${durationValue} min</b></span>
+                    <div class="route-data-row" style="display: flex; gap: 15px; font-size: 0.9em; color: #2c3e50;">
+                        <span>KM: <b>${mileageValue}</b></span>
+                        <span>Min: <b>${durationValue}</b></span>
                     </div>
                 `;
 

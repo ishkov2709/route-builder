@@ -20,7 +20,6 @@ function buildRoute() {
     const rawText = document.getElementById("input").value.trim();
     if (!rawText) return;
     
-    // Улучшенная разбивка по дате
     const entries = rawText.split(/(?=\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2})/).filter(e => e.trim().length > 20);
     const listContainer = document.getElementById("route-list");
     let latlngs = [];
@@ -33,31 +32,35 @@ function buildRoute() {
             const engLat = parseFloat(matches[1][1]);
             const engLng = parseFloat(matches[1][2]);
 
-            // --- HEADER ---
+            // Header: ID + Device Type
             let preCoordText = line.split(matches[0][0])[0].trim();
             let parts = preCoordText.split(/\s+/);
-            // Пропускаем дату (0), время (1) и ID (2)
             let fullTitle = parts.slice(3).join(' '); 
 
-            // --- MILEAGE & TIME LOGIC ---[cite: 4]
+            // --- REFINED LOGIC BASED ON YOUR CORRECTION ---
             const allWords = line.replace(/\n/g, ' ').split(/\s+/);
+            
             let mileageValue = "0";
             let timeValue = "0";
 
-            // Ищем пробег: число, которое идет ПОСЛЕ фразы "підтверджені"[cite: 4]
+            // 1. Находим пробег (число после "підтверджені")
             const statusIdx = allWords.findIndex(w => w.includes("підтверджені"));
             if (statusIdx !== -1 && allWords[statusIdx + 1]) {
-                let val = allWords[statusIdx + 1].replace(',', '.');
-                if (!isNaN(parseFloat(val))) {
-                    mileageValue = allWords[statusIdx + 1];
-                }
+                mileageValue = allWords[statusIdx + 1]; // Будет 6,162
             }
 
-            // Ищем время: обычно это предпоследнее или последнее число в блоке[cite: 4]
-            // Отфильтруем все числа в конце строки[cite: 4]
-            const numericValues = allWords.filter(w => !isNaN(parseFloat(w.replace(',', '.'))) && !w.includes('-') && !w.includes(':'));
-            if (numericValues.length >= 2) {
-                timeValue = numericValues[numericValues.length - 1]; // Последнее число — это время[cite: 4]
+            // 2. Находим время (самое последнее число в блоке)
+            const cleanNumbers = allWords.filter(w => {
+                let val = w.replace(',', '.');
+                return !isNaN(parseFloat(val)) && 
+                       !w.includes('-') && 
+                       !w.includes(':') && 
+                       !w.startsWith('46.') && 
+                       !w.startsWith('32.');
+            });
+            
+            if (cleanNumbers.length > 0) {
+                timeValue = cleanNumbers[cleanNumbers.length - 1]; // Будет 9,25
             }
 
             if (!isNaN(engLat) && !isNaN(engLng)) {
@@ -74,7 +77,7 @@ function buildRoute() {
                     </div>
                 `;
 
-                // Hover effects[cite: 4]
+                // Hover effects
                 item.onmouseenter = () => {
                     if (marker._icon) marker._icon.style.filter = "hue-rotate(150deg) brightness(1.5)";
                     marker.openPopup();

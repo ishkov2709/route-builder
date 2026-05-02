@@ -20,13 +20,11 @@ function buildRoute() {
     const rawText = document.getElementById("input").value.trim();
     if (!rawText) return;
     
-    // Split by date pattern: 2026-05-01 08:15:30[cite: 4]
     const entries = rawText.split(/(?=\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2})/).filter(e => e.trim().length > 20);
     const listContainer = document.getElementById("route-list");
     let latlngs = [];
 
     entries.forEach((line) => {
-        // Regex to find coordinate pairs (e.g., 47.827094, 31.168991)[cite: 4]
         const coordRegex = /(\d{2}\.\d+),\s+(\d{2}\.\d+)/g;
         const matches = [...line.matchAll(coordRegex)];
 
@@ -34,27 +32,19 @@ function buildRoute() {
             const engLat = parseFloat(matches[1][1]);
             const engLng = parseFloat(matches[1][2]);
 
-            // --- HEADER LOGIC ---[cite: 4]
-            // 1. Get everything before the very first coordinate[cite: 4]
+            // Header extraction: ID + Type[cite: 4]
             let preCoordText = line.split(matches[0][0])[0].trim();
-            
-            // 2. Remove date and time from the start (YYYY-MM-DD HH:MM:SS ID)[cite: 4]
-            // We split by space and skip the first 3 parts (Date, Time, Sheet ID)[cite: 4]
             let parts = preCoordText.split(/\s+/);
             let fullTitle = parts.slice(3).join(' '); 
 
-            // --- DATA LOGIC ---[cite: 4]
+            // Data extraction[cite: 4]
             const endParts = line.trim().split(/\s+/);
-            
-            // Mileage: find first numeric value after the second set of coordinates[cite: 4]
             let mileageValue = "0";
-            let secondCoordStr = matches[1][0]; 
             let foundSecondCoord = false;
 
             for (let i = 0; i < endParts.length; i++) {
                 if (endParts[i].includes(matches[1][1])) foundSecondCoord = true;
                 if (foundSecondCoord) {
-                    // Look for the next element that is a pure number (or has a comma)[cite: 4]
                     let val = endParts[i].replace(',', '.');
                     if (!isNaN(parseFloat(val)) && !val.includes(':') && val.length < 10 && i > (endParts.indexOf(matches[1][1]) + 1)) {
                         mileageValue = endParts[i];
@@ -81,6 +71,14 @@ function buildRoute() {
                         <span>Time: <b>${actualTime} min</b></span>
                     </div>
                 `;
+
+                // Highlight marker on hover[cite: 4]
+                item.onmouseenter = () => {
+                    if (marker._icon) marker._icon.style.filter = "hue-rotate(150deg) brightness(1.5)";
+                };
+                item.onmouseleave = () => {
+                    if (marker._icon) marker._icon.style.filter = "";
+                };
 
                 item.onclick = () => {
                     map.flyTo([engLat, engLng], 16);

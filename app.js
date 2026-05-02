@@ -17,45 +17,41 @@ function clearMap() {
 function buildRoute() {
     clearMap();
 
-    // Очищаем текст от лишних переносов строк внутри одной записи
     const rawText = document.getElementById("input").value.trim();
     if (!rawText) return;
     
-    // Разбиваем по дате, так как каждая запись начинается с "2026-"
-    const entries = rawText.split(/(?=202\d-\d{2}-\d{2})/).filter(e => e.trim().length > 10);
+    // Split by date to handle multiple entries
+    const entries = rawText.split(/(?=202\d-\d{2}-\d{2})/).filter(e => e.trim().length > 20);
     const listContainer = document.getElementById("route-list");
     let latlngs = [];
 
     entries.forEach((line) => {
-        // Поиск координат
         const coordRegex = /(\d{2}\.\d+),\s+(\d{2}\.\d+)/g;
         const matches = [...line.matchAll(coordRegex)];
 
         if (matches.length >= 2) {
-            // Координаты инженера (вторая пара)
+            // Engineer coordinates (2nd pair)
             const engLat = parseFloat(matches[1][1]);
             const engLng = parseFloat(matches[1][2]);
 
-            const dateStr = line.substring(0, 10);
-            
-            // ИЗВЛЕЧЕНИЕ ИМЕНИ (убираем лишнее)
+            // 1. Extract and Clean Title
             const textBeforeCoords = line.split(matches[0][0])[0].trim();
             const parts = textBeforeCoords.split(/\s+/);
-            
-            // Находим индекс после номера листа (обычно это 4-й элемент: Дата, Время, №)[cite: 4]
-            // И убираем слова "Поездка", "на", "склад"[cite: 4]
+            // Ignore Date(0), Time(1), ID(2). Filter out noise words.
             let deviceName = parts.slice(3)
-                .filter(word => !["Поездка", "на", "склад", "Поїздка"].includes(word))
+                .filter(word => !["Поездка", "на", "склад", "POS", "терминал", "терміналы"].includes(word))
                 .join(' ');
 
-            // Пробег и время (с конца строки)[cite: 4]
+            // 2. Extract Numeric Data (Mileage & Time)
             const endParts = line.trim().split(/\s+/);
-            const mileage = endParts[endParts.length - 5]; 
+            // Mileage: find the first number appearing after coordinates/status
+            const mileage = endParts.find((p, i) => i > 10 && !isNaN(p.replace(',', '.'))) || "0";
+            // Time: usually the second to last element
             const actualTime = endParts[endParts.length - 2]; 
 
             if (!isNaN(engLat) && !isNaN(engLng)) {
                 const marker = L.marker([engLat, engLng]).addTo(map);
-                marker.bindPopup(`<b>${deviceName}</b><br>${dateStr}`);
+                marker.bindPopup(`<b>${deviceName}</b>`);
                 
                 markers.push(marker);
                 latlngs.push([engLat, engLng]);
@@ -64,10 +60,9 @@ function buildRoute() {
                 item.className = "route-item";
                 item.innerHTML = `
                     <b>${deviceName}</b>
-                    <span style="color: #b2bec3; font-size: 11px;">${dateStr}</span>
                     <div class="route-data-row">
-                        <span>Пробег: <b>${mileage}</b></span>
-                        <span>Время: <b>${actualTime} мин</b></span>
+                        <span>Mileage: <b>${mileage}</b></span>
+                        <span>Time: <b>${actualTime} min</b></span>
                     </div>
                 `;
 
@@ -80,13 +75,12 @@ function buildRoute() {
         }
     });
 
-    // Рисуем линию, если есть хотя бы 2 точки[cite: 4]
     if (latlngs.length >= 2) {
         polyline = L.polyline(latlngs, {
             color: '#27ae60',
-            weight: 5,
-            opacity: 0.7,
-            dashArray: '10, 10' // Пунктирная линия для красоты
+            weight: 4,
+            opacity: 0.8,
+            dashArray: '5, 10'
         }).addTo(map);
         map.fitBounds(polyline.getBounds(), { padding: [50, 50] });
     } else if (latlngs.length === 1) {

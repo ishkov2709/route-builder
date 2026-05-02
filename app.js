@@ -32,41 +32,43 @@ function buildRoute() {
             const engLat = parseFloat(matches[1][1]);
             const engLng = parseFloat(matches[1][2]);
 
-            // Header: ID + Device Type
             let preCoordText = line.split(matches[0][0])[0].trim();
             let parts = preCoordText.split(/\s+/);
             let fullTitle = parts.slice(3).join(' '); 
 
-            // --- REFINED LOGIC BASED ON YOUR CORRECTION ---
             const allWords = line.replace(/\n/g, ' ').split(/\s+/);
-            
             let mileageValue = "0";
             let timeValue = "0";
 
-            // 1. Находим пробег (число после "підтверджені")
             const statusIdx = allWords.findIndex(w => w.includes("підтверджені"));
             if (statusIdx !== -1 && allWords[statusIdx + 1]) {
-                mileageValue = allWords[statusIdx + 1]; // Будет 6,162
+                mileageValue = allWords[statusIdx + 1]; 
             }
 
-            // 2. Находим время (самое последнее число в блоке)
             const cleanNumbers = allWords.filter(w => {
                 let val = w.replace(',', '.');
-                return !isNaN(parseFloat(val)) && 
-                       !w.includes('-') && 
-                       !w.includes(':') && 
-                       !w.startsWith('46.') && 
-                       !w.startsWith('32.');
+                return !isNaN(parseFloat(val)) && !w.includes('-') && !w.includes(':') && !w.startsWith('46.') && !w.startsWith('32.');
             });
             
             if (cleanNumbers.length > 0) {
-                timeValue = cleanNumbers[cleanNumbers.length - 1]; // Будет 9,25
+                timeValue = cleanNumbers[cleanNumbers.length - 1]; 
             }
 
             if (!isNaN(engLat) && !isNaN(engLng)) {
                 const marker = L.marker([engLat, engLng]).addTo(map);
-                marker.bindPopup(`<b>${fullTitle}</b>`);
                 
+                // --- НАСТРОЙКА POPUP (ОКНА НА КАРТЕ) ---
+                const popupContent = `
+                    <div class="map-popup">
+                        <b style="font-size: 13px; display: block; margin-bottom: 4px;">${fullTitle}</b>
+                        <div style="font-size: 11px; color: #7f8c8d; font-weight: normal;">
+                            Mileage: ${mileageValue}<br>
+                            Time: ${timeValue} min
+                        </div>
+                    </div>
+                `;
+                marker.bindPopup(popupContent, { closeButton: false });
+
                 const item = document.createElement("div");
                 item.className = "route-item";
                 item.innerHTML = `
@@ -77,7 +79,7 @@ function buildRoute() {
                     </div>
                 `;
 
-                // Hover effects
+                // События для связи списка и карты
                 item.onmouseenter = () => {
                     if (marker._icon) marker._icon.style.filter = "hue-rotate(150deg) brightness(1.5)";
                     marker.openPopup();
@@ -87,11 +89,14 @@ function buildRoute() {
                     marker.closePopup();
                 };
 
-                marker.on('mouseover', () => {
+                // События наведения на саму точку на карте
+                marker.on('mouseover', function (e) {
+                    this.openPopup();
                     item.classList.add('highlight-list');
                     item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                 });
-                marker.on('mouseout', () => {
+                marker.on('mouseout', function (e) {
+                    this.closePopup();
                     item.classList.remove('highlight-list');
                 });
 

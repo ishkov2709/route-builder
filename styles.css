@@ -73,3 +73,18 @@ button:hover { background: #27ae60; transform: translateY(-1px); }
 .route-data-row b { display: inline; color: #27ae60; }
 
 #map { flex: 1; }
+
+/* Убираем лишние отступы у Leaflet popup */
+.leaflet-popup-content-wrapper {
+    border-radius: 8px;
+    padding: 2px;
+}
+
+.leaflet-popup-content {
+    margin: 12px;
+    line-height: 1.4;
+}
+
+.map-popup b {
+    color: #2c3e50;
+}

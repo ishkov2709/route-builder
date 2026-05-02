@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Route Builder</title>
+
+<link rel="stylesheet" href="styles.css">
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+</head>
+
+<body>
+
+<div class="header">
+  🗺️ Route Builder
+</div>
+
+<div class="container">
+
+  <div class="sidebar">
+    <div><b>Format:</b></div>
+    <div class="hint">date time, latitude, longitude</div>
+
+    <textarea id="input">
+2026-05-01 10:00, 46.4825, 30.7233
+2026-05-01 09:00, 46.4700, 30.7100
+2026-05-01 11:00, 46.4900, 30.7300
+    </textarea>
+
+    <button onclick="buildRoute()">Build Route</button>
+  </div>
+
+  <div id="map"></div>
+
+</div>
+
+<script src="app.js"></script>
+
+</body>
+</html>

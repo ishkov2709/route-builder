@@ -13,6 +13,8 @@ function clearMap() {
     if (polyline) map.removeLayer(polyline);
     markers.forEach(m => map.removeLayer(m));
     markers = [];
+    // Очищаем текстовый список в сайдбаре
+    document.getElementById("route-list").innerHTML = "";
 }
 
 function buildRoute() {
@@ -23,6 +25,7 @@ function buildRoute() {
 
     let points = [];
 
+    // Парсинг данных
     lines.forEach(line => {
         let parts = line.split(",");
         if (parts.length === 3) {
@@ -38,19 +41,47 @@ function buildRoute() {
         }
     });
 
+    // Сортировка по времени
     points.sort((a, b) => a.date - b.date);
 
     let latlngs = [];
+    let listContainer = document.getElementById("route-list");
 
-    points.forEach(p => {
+    points.forEach((p, index) => {
+        // Создание маркера на карте
         let marker = L.marker([p.lat, p.lng])
             .addTo(map)
             .bindPopup("Time: " + p.raw);
 
         markers.push(marker);
         latlngs.push([p.lat, p.lng]);
+
+        // Создание элемента списка в сайдбаре
+        let item = document.createElement("div");
+        item.className = "route-item";
+        item.innerHTML = `<b>Точка №${index + 1}</b> ${p.raw}<br><small>${p.lat}, ${p.lng}</small>`;
+
+        // При наведении на элемент списка — открываем попап на карте
+        item.onmouseenter = () => {
+            marker.openPopup();
+            marker._icon.style.filter = "hue-rotate(140deg) brightness(1.2)"; // Подсветка маркера
+        };
+
+        // Когда убираем мышь — закрываем
+        item.onmouseleave = () => {
+            marker.closePopup();
+            marker._icon.style.filter = "";
+        };
+
+        // Клик по элементу списка центрирует карту на точке
+        item.onclick = () => {
+            map.flyTo([p.lat, p.lng], 15);
+        };
+
+        listContainer.appendChild(item);
     });
 
+    // Рисование линии маршрута
     if (latlngs.length > 0) {
         polyline = L.polyline(latlngs, { color: '#27ae60', weight: 4 }).addTo(map);
         map.fitBounds(latlngs);

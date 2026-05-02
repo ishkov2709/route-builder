@@ -1,9 +1,7 @@
 let map = L.map('map').setView([46.4825, 30.7233], 13);
 
 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-    attribution: '&copy; OpenStreetMap &copy; CARTO',
-    subdomains: 'abcd',
-    maxZoom: 19
+    attribution: '&copy; OpenStreetMap &copy; CARTO'
 }).addTo(map);
 
 let polyline;
@@ -13,77 +11,85 @@ function clearMap() {
     if (polyline) map.removeLayer(polyline);
     markers.forEach(m => map.removeLayer(m));
     markers = [];
-    // Очищаем текстовый список в сайдбаре
     document.getElementById("route-list").innerHTML = "";
 }
 
 function buildRoute() {
     clearMap();
 
-    let text = document.getElementById("input").value;
-    let lines = text.split("\n");
+    // Очищаем текст от лишних переносов строк внутри одной записи
+    const rawText = document.getElementById("input").value.trim();
+    if (!rawText) return;
+    
+    // Разбиваем по дате, так как каждая запись начинается с "2026-"
+    const entries = rawText.split(/(?=202\d-\d{2}-\d{2})/).filter(e => e.trim().length > 10);
+    const listContainer = document.getElementById("route-list");
+    let latlngs = [];
 
-    let points = [];
+    entries.forEach((line) => {
+        // Поиск координат
+        const coordRegex = /(\d{2}\.\d+),\s+(\d{2}\.\d+)/g;
+        const matches = [...line.matchAll(coordRegex)];
 
-    // Парсинг данных
-    lines.forEach(line => {
-        let parts = line.split(",");
-        if (parts.length === 3) {
-            let dateStr = parts[0].trim();
-            let lat = parseFloat(parts[1]);
-            let lng = parseFloat(parts[2]);
+        if (matches.length >= 2) {
+            // Координаты инженера (вторая пара)
+            const engLat = parseFloat(matches[1][1]);
+            const engLng = parseFloat(matches[1][2]);
 
-            let date = new Date(dateStr);
+            const dateStr = line.substring(0, 10);
+            
+            // ИЗВЛЕЧЕНИЕ ИМЕНИ (убираем лишнее)
+            const textBeforeCoords = line.split(matches[0][0])[0].trim();
+            const parts = textBeforeCoords.split(/\s+/);
+            
+            // Находим индекс после номера листа (обычно это 4-й элемент: Дата, Время, №)[cite: 4]
+            // И убираем слова "Поездка", "на", "склад"[cite: 4]
+            let deviceName = parts.slice(3)
+                .filter(word => !["Поездка", "на", "склад", "Поїздка"].includes(word))
+                .join(' ');
 
-            if (!isNaN(lat) && !isNaN(lng) && !isNaN(date.getTime())) {
-                points.push({ date, lat, lng, raw: dateStr });
+            // Пробег и время (с конца строки)[cite: 4]
+            const endParts = line.trim().split(/\s+/);
+            const mileage = endParts[endParts.length - 5]; 
+            const actualTime = endParts[endParts.length - 2]; 
+
+            if (!isNaN(engLat) && !isNaN(engLng)) {
+                const marker = L.marker([engLat, engLng]).addTo(map);
+                marker.bindPopup(`<b>${deviceName}</b><br>${dateStr}`);
+                
+                markers.push(marker);
+                latlngs.push([engLat, engLng]);
+
+                const item = document.createElement("div");
+                item.className = "route-item";
+                item.innerHTML = `
+                    <b>${deviceName}</b>
+                    <span style="color: #b2bec3; font-size: 11px;">${dateStr}</span>
+                    <div class="route-data-row">
+                        <span>Пробег: <b>${mileage}</b></span>
+                        <span>Время: <b>${actualTime} мин</b></span>
+                    </div>
+                `;
+
+                item.onclick = () => {
+                    map.flyTo([engLat, engLng], 16);
+                    marker.openPopup();
+                };
+                listContainer.appendChild(item);
             }
         }
     });
 
-    // Сортировка по времени
-    points.sort((a, b) => a.date - b.date);
-
-    let latlngs = [];
-    let listContainer = document.getElementById("route-list");
-
-    points.forEach((p, index) => {
-        // Создание маркера на карте
-        let marker = L.marker([p.lat, p.lng])
-            .addTo(map)
-            .bindPopup("Time: " + p.raw);
-
-        markers.push(marker);
-        latlngs.push([p.lat, p.lng]);
-
-        // Создание элемента списка в сайдбаре
-        let item = document.createElement("div");
-        item.className = "route-item";
-        item.innerHTML = `<b>Точка №${index + 1}</b> ${p.raw}<br><small>${p.lat}, ${p.lng}</small>`;
-
-        // При наведении на элемент списка — открываем попап на карте
-        item.onmouseenter = () => {
-            marker.openPopup();
-            marker._icon.style.filter = "hue-rotate(140deg) brightness(1.2)"; // Подсветка маркера
-        };
-
-        // Когда убираем мышь — закрываем
-        item.onmouseleave = () => {
-            marker.closePopup();
-            marker._icon.style.filter = "";
-        };
-
-        // Клик по элементу списка центрирует карту на точке
-        item.onclick = () => {
-            map.flyTo([p.lat, p.lng], 15);
-        };
-
-        listContainer.appendChild(item);
-    });
-
-    // Рисование линии маршрута
-    if (latlngs.length > 0) {
-        polyline = L.polyline(latlngs, { color: '#27ae60', weight: 4 }).addTo(map);
-        map.fitBounds(latlngs);
+    // Рисуем линию, если есть хотя бы 2 точки[cite: 4]
+    if (latlngs.length >= 2) {
+        polyline = L.polyline(latlngs, {
+            color: '#27ae60',
+            weight: 5,
+            opacity: 0.7,
+            dashArray: '10, 10' // Пунктирная линия для красоты
+        }).addTo(map);
+        map.fitBounds(polyline.getBounds(), { padding: [50, 50] });
+    } else if (latlngs.length === 1) {
+        map.setView(latlngs[0], 15);
     }
 }

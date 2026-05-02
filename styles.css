@@ -1,5 +1,5 @@
 * {
-  box-sizing: border-box; /* Теперь padding и border не увеличивают ширину */
+  box-sizing: border-box;
 }
 
 body, html {
@@ -9,7 +9,7 @@ body, html {
   font-family: 'Inter', sans-serif;
   background: #f4f7f5;
   color: #2d3436;
-  overflow: hidden; /* Убираем скролл у всего окна */
+  overflow: hidden;
 }
 
 .header {
@@ -34,7 +34,7 @@ body, html {
   display: flex;
   flex-direction: column;
   gap: 15px;
-  overflow-x: hidden; /* Предотвращает появление горизонтального скролла при анимации */
+  overflow-x: hidden;
 }
 
 textarea {
@@ -43,14 +43,9 @@ textarea {
   padding: 12px;
   border-radius: 10px;
   border: 1px solid #dcdde1;
-  font-size: 14px;
+  font-size: 13px;
   resize: none;
   outline: none;
-  transition: border-color 0.2s;
-}
-
-textarea:focus {
-  border-color: #2ecc71;
 }
 
 button {
@@ -63,7 +58,7 @@ button {
   font-size: 15px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: 0.2s;
 }
 
 button:hover {
@@ -72,18 +67,16 @@ button:hover {
 
 #map {
   flex: 1;
-  background: #ebedee;
 }
 
-/* Стилизация списка */
 .route-list {
   flex: 1;
   overflow-y: auto;
-  padding-right: 5px; /* Место для вертикального скролла */
+  padding-right: 5px;
 }
 
 .route-item {
-  width: 100%; /* Занимает всю доступную ширину */
+  width: 100%;
   padding: 12px;
   margin-bottom: 10px;
   background: #fff;
@@ -92,14 +85,11 @@ button:hover {
   font-size: 13px;
   cursor: pointer;
   transition: all 0.2s ease-in-out;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
 }
 
 .route-item:hover {
   background: #f0fff4;
   border-color: #2ecc71;
-  /* Заменили translateX на легкое выделение цветом и тенью, 
-     чтобы не провоцировать скролл */
   box-shadow: 0 4px 8px rgba(46, 204, 113, 0.15);
 }
 
@@ -110,7 +100,15 @@ button:hover {
   margin-bottom: 4px;
 }
 
-.hint {
+.route-data-row {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 5px;
+  color: #636e72;
   font-size: 12px;
+}
+
+.hint {
+  font-size: 11px;
   color: #7f8c8d;
 }

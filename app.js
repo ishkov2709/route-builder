@@ -1,73 +1,88 @@
-// Инициализация карты
-let map = L.map('map').setView([46.97, 32.0], 10);
+// Init map
+let map = L.map("map").setView([46.97, 32.0], 10);
 
-L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-    attribution: '&copy; OpenStreetMap &copy; CARTO'
+L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
+  attribution: "&copy; OpenStreetMap &copy; CARTO",
 }).addTo(map);
 
 let polyline;
 let markers = [];
 
 function clearMap() {
-    if (polyline) map.removeLayer(polyline);
-    markers.forEach(m => map.removeLayer(m));
-    markers = [];
-    document.getElementById("route-list").innerHTML = "";
+  if (polyline) map.removeLayer(polyline);
+  markers.forEach((m) => map.removeLayer(m));
+  markers = [];
+  document.getElementById("route-list").innerHTML = "";
 }
 
 function buildRoute() {
-    clearMap();
+  clearMap();
 
-    const rawText = document.getElementById("input").value.trim();
-    if (!rawText) return;
-    
-    const entries = rawText.split(/(?=202\d-\d{2}-\d{2})/).filter(e => e.trim().length > 20);
-    const listContainer = document.getElementById("route-list");
-    let latlngs = [];
+  const rawText = document.getElementById("input").value.trim();
+  if (!rawText) return;
 
-    entries.forEach((line, index) => {
-        const coordRegex = /(\d{2}\.\d+),\s+(\d{2}\.\d+)/g;
-        const matches = [...line.matchAll(coordRegex)];
+  const entries = rawText
+    .split(/(?=202\d-\d{2}-\d{2})/)
+    .filter((e) => e.trim().length > 20);
+  const listContainer = document.getElementById("route-list");
+  let latlngs = [];
 
-        if (matches.length >= 2) {
-            const engLat = parseFloat(matches[1][1]);
-            const engLng = parseFloat(matches[1][2]);
-            const allWords = line.replace(/\n/g, ' ').split(/\s+/);
+  entries.forEach((line, index) => {
+    const coordRegex = /(\d{2}\.\d+),\s+(\d{2}\.\d+)/g;
+    const matches = [...line.matchAll(coordRegex)];
 
-            // 1. Форматирование Даты и Времени
-            let rawDate = allWords[0] || "";
-            let dateParts = rawDate.split('-');
-            let formattedDate = dateParts.length === 3 ? `${dateParts[2]}.${dateParts[1]}.${dateParts[0]}` : rawDate;
-            let eventTime = allWords.find(w => (w.match(/:/g) || []).length === 2) || "";
+    if (matches.length >= 2) {
+      const engLat = parseFloat(matches[1][1]);
+      const engLng = parseFloat(matches[1][2]);
+      const allWords = line.replace(/\n/g, " ").split(/\s+/);
 
-            // 2. Заголовок (название точки)
-            let preCoordText = line.split(matches[0][0])[0].trim();
-            let headerParts = preCoordText.split(/\s+/);
-            let fullTitle = headerParts.slice(3).join(' '); 
+      // 1. Formatted Date & Time
+      let rawDate = allWords[0] || "";
+      let dateParts = rawDate.split("-");
+      let formattedDate =
+        dateParts.length === 3
+          ? `${dateParts[2]}.${dateParts[1]}.${dateParts[0]}`
+          : rawDate;
+      let eventTime =
+        allWords.find((w) => (w.match(/:/g) || []).length === 2) || "";
 
-            // 3. Пробег (KM)
-            let mileageValue = "0";
-            const statusIdx = allWords.findIndex(w => w.includes("підтверджені") || w.includes("подтверждены"));
-            if (statusIdx !== -1 && allWords[statusIdx + 1]) {
-                mileageValue = allWords[statusIdx + 1];
-            }
+      // 2. Title
+      let preCoordText = line.split(matches[0][0])[0].trim();
+      let headerParts = preCoordText.split(/\s+/);
+      let fullTitle = headerParts.slice(3).join(" ");
 
-            // 4. Длительность (Min)
-            let durationValue = "0";
-            const cleanNumbers = allWords.filter(w => {
-                let val = w.replace(',', '.');
-                return !isNaN(parseFloat(val)) && !w.includes('-') && !w.includes(':') && 
-                       !w.startsWith('46.') && !w.startsWith('47.') && !w.startsWith('31.') && !w.startsWith('32.');
-            });
-            if (cleanNumbers.length > 0) {
-                durationValue = cleanNumbers[cleanNumbers.length - 1]; 
-            }
+      // 3. Mileage (KM)
+      let mileageValue = "0";
+      const statusIdx = allWords.findIndex(
+        (w) => w.includes("підтверджені") || w.includes("подтверждены"),
+      );
+      if (statusIdx !== -1 && allWords[statusIdx + 1]) {
+        mileageValue = allWords[statusIdx + 1];
+      }
 
-            if (!isNaN(engLat) && !isNaN(engLng)) {
-                const marker = L.marker([engLat, engLng]).addTo(map);
-                
-                // POPUP на карте
-                const popupContent = `
+      // 4. Time (Min)
+      let durationValue = "0";
+      const cleanNumbers = allWords.filter((w) => {
+        let val = w.replace(",", ".");
+        return (
+          !isNaN(parseFloat(val)) &&
+          !w.includes("-") &&
+          !w.includes(":") &&
+          !w.startsWith("46.") &&
+          !w.startsWith("47.") &&
+          !w.startsWith("31.") &&
+          !w.startsWith("32.")
+        );
+      });
+      if (cleanNumbers.length > 0) {
+        durationValue = cleanNumbers[cleanNumbers.length - 1];
+      }
+
+      if (!isNaN(engLat) && !isNaN(engLng)) {
+        const marker = L.marker([engLat, engLng]).addTo(map);
+
+        // POPUP
+        const popupContent = `
                     <div class="map-popup">
                         <b style="font-size: 13px; display: block; margin-bottom: 2px;">${fullTitle}</b>
                         <div style="font-size: 11px; color: #7f8c8d; margin-bottom: 5px;">
@@ -78,12 +93,12 @@ function buildRoute() {
                         </div>
                     </div>
                 `;
-                marker.bindPopup(popupContent, { closeButton: false });
+        marker.bindPopup(popupContent, { closeButton: false });
 
-                // КАРТОЧКА в списке (теперь тоже KM и Min)
-                const item = document.createElement("div");
-                item.className = "route-item";
-                item.innerHTML = `
+        // Card in the list
+        const item = document.createElement("div");
+        item.className = "route-item";
+        item.innerHTML = `
                     <b>${fullTitle}</b>
                     <div style="font-size: 0.85em; color: #7f8c8d; margin: 3px 0 7px 0;">
                         <span>📅 ${formattedDate}</span>
@@ -95,40 +110,44 @@ function buildRoute() {
                     </div>
                 `;
 
-                // Интерактив
-                item.onmouseenter = () => {
-                    if (marker._icon) marker._icon.style.filter = "hue-rotate(150deg) brightness(1.5)";
-                    marker.openPopup();
-                };
-                item.onmouseleave = () => {
-                    if (marker._icon) marker._icon.style.filter = "";
-                    marker.closePopup();
-                };
-                marker.on('mouseover', function() {
-                    this.openPopup();
-                    item.classList.add('highlight-list');
-                    item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                });
-                marker.on('mouseout', function() {
-                    this.closePopup();
-                    item.classList.remove('highlight-list');
-                });
-                item.onclick = () => {
-                    map.flyTo([engLat, engLng], 16);
-                    marker.openPopup();
-                };
+        // Interactive
+        item.onmouseenter = () => {
+          if (marker._icon)
+            marker._icon.style.filter = "hue-rotate(150deg) brightness(1.5)";
+          marker.openPopup();
+        };
+        item.onmouseleave = () => {
+          if (marker._icon) marker._icon.style.filter = "";
+          marker.closePopup();
+        };
+        marker.on("mouseover", function () {
+          this.openPopup();
+          item.classList.add("highlight-list");
+          item.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        });
+        marker.on("mouseout", function () {
+          this.closePopup();
+          item.classList.remove("highlight-list");
+        });
+        item.onclick = () => {
+          map.flyTo([engLat, engLng], 16);
+          marker.openPopup();
+        };
 
-                markers.push(marker);
-                latlngs.push([engLat, engLng]);
-                listContainer.appendChild(item);
-            }
-        }
-    });
-
-    if (latlngs.length >= 2) {
-        polyline = L.polyline(latlngs, {
-            color: '#27ae60', weight: 4, opacity: 0.8, dashArray: '5, 10'
-        }).addTo(map);
-        map.fitBounds(polyline.getBounds(), { padding: [50, 50] });
+        markers.push(marker);
+        latlngs.push([engLat, engLng]);
+        listContainer.appendChild(item);
+      }
     }
+  });
+
+  if (latlngs.length >= 2) {
+    polyline = L.polyline(latlngs, {
+      color: "#27ae60",
+      weight: 4,
+      opacity: 0.8,
+      dashArray: "5, 10",
+    }).addTo(map);
+    map.fitBounds(polyline.getBounds(), { padding: [50, 50] });
+  }
 }

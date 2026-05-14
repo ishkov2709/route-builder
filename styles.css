@@ -136,3 +136,18 @@ button:hover {
 .map-popup b {
   color: #2c3e50;
 }
+
+.marker-number {
+  background-color: #27ae60;
+  color: white;
+  border: 2px solid white;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 12px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}

@@ -79,7 +79,17 @@ function buildRoute() {
       }
 
       if (!isNaN(engLat) && !isNaN(engLng)) {
-        const marker = L.marker([engLat, engLng]).addTo(map);
+        const numberIcon = L.divIcon({
+          className: "custom-number-icon",
+          html: `<div class="marker-number">${index + 1}</div>`,
+          iconSize: [24, 24],
+          iconAnchor: [12, 12],
+          popupAnchor: [0, -12],
+        });
+
+        const marker = L.marker([engLat, engLng], { icon: numberIcon }).addTo(
+          map,
+        );
 
         // POPUP
         const popupContent = `
@@ -110,29 +120,46 @@ function buildRoute() {
                     </div>
                 `;
 
-        // Interactive
+        const setHighlight = (state) => {
+          if (marker._icon) {
+            const inner = marker._icon.querySelector(".marker-number");
+            if (inner)
+              inner.style.filter = state
+                ? "hue-rotate(150deg) brightness(1.5)"
+                : "";
+          }
+        };
+
+        // Interactive: List item events
         item.onmouseenter = () => {
-          if (marker._icon)
-            marker._icon.style.filter = "hue-rotate(150deg) brightness(1.5)";
+          setHighlight(true);
           marker.openPopup();
         };
         item.onmouseleave = () => {
-          if (marker._icon) marker._icon.style.filter = "";
+          setHighlight(false);
           marker.closePopup();
         };
+        item.onclick = () => {
+          map.flyTo([engLat, engLng], 16);
+          marker.openPopup();
+        };
+
+        // Interactive: Marker events
         marker.on("mouseover", function () {
+          setHighlight(true);
           this.openPopup();
           item.classList.add("highlight-list");
           item.scrollIntoView({ behavior: "smooth", block: "nearest" });
         });
         marker.on("mouseout", function () {
+          setHighlight(false);
           this.closePopup();
           item.classList.remove("highlight-list");
         });
-        item.onclick = () => {
+        marker.on("click", function () {
           map.flyTo([engLat, engLng], 16);
-          marker.openPopup();
-        };
+          this.openPopup();
+        });
 
         markers.push(marker);
         latlngs.push([engLat, engLng]);

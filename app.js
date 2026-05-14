@@ -42,7 +42,7 @@ function closeModal(id) {
 }
 
 window.onclick = function(event) {
-  if (event.target.className.includes('modal')) {
+  if (event.target.classList.contains('modal')) {
     event.target.style.display = "none";
   }
 }

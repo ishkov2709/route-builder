@@ -232,15 +232,15 @@ button:hover {
 }
 
 .close-btn {
-  background: transparent;  /* Фон прозрачный по умолчанию */
+  background: transparent;
   border: none;
-  color: #95a5a6;           /* Серый цвет крестика */
+  color: #95a5a6;
   font-size: 16px;
   cursor: pointer;
-  width: 30px;              /* Фиксированный размер */
+  width: 30px;
   height: 30px;
-  border-radius: 6px;       /* Квадрат со скруглением */
-  display: flex;            /* Центровка */
+  border-radius: 6px;
+  display: flex;
   align-items: center;
   justify-content: center;
   padding: 0;
@@ -249,9 +249,8 @@ button:hover {
 }
 
 .close-btn:hover {
-  background: #27ae60;      /* Зеленый фон только при наведении */
-  color: #ffffff;           /* Белый крестик только при наведении */
-  /* transform удален, кнопка не дергается */
+  background: #27ae60;
+  color: #ffffff;
 }
 
 #route-name-input {

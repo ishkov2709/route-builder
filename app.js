@@ -7,7 +7,115 @@ L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
 
 let polyline;
 let markers = [];
+let routeToDeleteIndex = null;
 
+// --- CUSTOM MODAL SYSTEM ---
+function showAlert(message, title = "Notification") {
+  document.getElementById("alert-title").innerText = title;
+  document.getElementById("alert-message").innerText = message;
+  document.getElementById("alert-modal").style.display = "flex";
+}
+
+function toggleMenu() {
+  const menu = document.getElementById("menu-dropdown");
+  menu.style.display = menu.style.display === "block" ? "none" : "block";
+}
+
+function openSaveModal() {
+  const rawText = document.getElementById("input").value.trim();
+  if (!rawText) {
+    showAlert("Please paste data and build a route first!", "Warning");
+    return;
+  }
+  document.getElementById("save-modal").style.display = "flex";
+  toggleMenu();
+}
+
+function openViewModal() {
+  renderSavedRoutes();
+  document.getElementById("view-modal").style.display = "flex";
+  toggleMenu();
+}
+
+function closeModal(id) {
+  document.getElementById(id).style.display = "none";
+}
+
+window.onclick = function(event) {
+  if (event.target.className.includes('modal')) {
+    event.target.style.display = "none";
+  }
+}
+
+// --- STORAGE LOGIC ---
+function confirmSaveRoute() {
+  const name = document.getElementById("route-name-input").value.trim();
+  const rawData = document.getElementById("input").value.trim();
+  
+  if (!name) { 
+    showAlert("Please enter a name!", "Error"); 
+    return; 
+  }
+
+  const savedRoutes = JSON.parse(localStorage.getItem("my_routes") || "[]");
+  savedRoutes.push({ name, data: rawData });
+  localStorage.setItem("my_routes", JSON.stringify(savedRoutes));
+
+  document.getElementById("route-name-input").value = "";
+  closeModal("save-modal");
+  showAlert("Route successfully saved!", "Success");
+}
+
+function renderSavedRoutes() {
+  const container = document.getElementById("saved-routes-list");
+  const savedRoutes = JSON.parse(localStorage.getItem("my_routes") || "[]");
+  container.innerHTML = "";
+
+  if (savedRoutes.length === 0) {
+    container.innerHTML = "<div style='text-align:center; padding:20px; color:#95a5a6;'>No saved routes</div>";
+    return;
+  }
+
+  savedRoutes.forEach((route, index) => {
+    const item = document.createElement("div");
+    item.className = "saved-route-item";
+    item.innerHTML = `
+      <div class="saved-route-info">
+        <div>${route.name}</div>
+      </div>
+      <div class="saved-route-actions">
+        <button class="btn-show" onclick="loadSavedRoute(${index})">Show</button>
+        <button class="btn-del" onclick="askDeleteRoute(${index})">Delete</button>
+      </div>
+    `;
+    container.appendChild(item);
+  });
+}
+
+function loadSavedRoute(index) {
+  const savedRoutes = JSON.parse(localStorage.getItem("my_routes") || "[]");
+  document.getElementById("input").value = savedRoutes[index].data;
+  buildRoute();
+  closeModal("view-modal");
+}
+
+function askDeleteRoute(index) {
+  routeToDeleteIndex = index;
+  document.getElementById("confirm-modal").style.display = "flex";
+}
+
+document.getElementById("confirm-delete-btn").onclick = function() {
+  if (routeToDeleteIndex !== null) {
+    const savedRoutes = JSON.parse(localStorage.getItem("my_routes") || "[]");
+    savedRoutes.splice(routeToDeleteIndex, 1);
+    localStorage.setItem("my_routes", JSON.stringify(savedRoutes));
+    renderSavedRoutes();
+    closeModal("confirm-modal");
+    routeToDeleteIndex = null;
+  }
+};
+
+// --- CORE ROUTE LOGIC ---
 function clearMap() {
   if (polyline) map.removeLayer(polyline);
   markers.forEach((m) => map.removeLayer(m));
@@ -17,7 +125,6 @@ function clearMap() {
 
 function buildRoute() {
   clearMap();
-
   const rawText = document.getElementById("input").value.trim();
   if (!rawText) return;
 
@@ -36,125 +143,63 @@ function buildRoute() {
       const engLng = parseFloat(matches[1][2]);
       const allWords = line.replace(/\n/g, " ").split(/\s+/);
 
-      // 1. Formatted Date & Time
       let rawDate = allWords[0] || "";
       let dateParts = rawDate.split("-");
-      let formattedDate =
-        dateParts.length === 3
-          ? `${dateParts[2]}.${dateParts[1]}.${dateParts[0]}`
-          : rawDate;
-      let eventTime =
-        allWords.find((w) => (w.match(/:/g) || []).length === 2) || "";
-
-      // 2. Title
+      let formattedDate = dateParts.length === 3 ? `${dateParts[2]}.${dateParts[1]}.${dateParts[0]}` : rawDate;
+      let eventTime = allWords.find((w) => (w.match(/:/g) || []).length === 2) || "";
       let preCoordText = line.split(matches[0][0])[0].trim();
       let headerParts = preCoordText.split(/\s+/);
       let fullTitle = headerParts.slice(3).join(" ");
-
-      // 3. Mileage (KM)
-      let mileageValue = "0";
-      const statusIdx = allWords.findIndex(
-        (w) => w.includes("підтверджені") || w.includes("подтверждены"),
-      );
-      if (statusIdx !== -1 && allWords[statusIdx + 1]) {
-        mileageValue = allWords[statusIdx + 1];
-      }
-
-      // 4. Time (Min)
-      let durationValue = "0";
-      const cleanNumbers = allWords.filter((w) => {
-        let val = w.replace(",", ".");
-        return (
-          !isNaN(parseFloat(val)) &&
-          !w.includes("-") &&
-          !w.includes(":") &&
-          !w.startsWith("46.") &&
-          !w.startsWith("47.") &&
-          !w.startsWith("31.") &&
-          !w.startsWith("32.")
-        );
-      });
-      if (cleanNumbers.length > 0) {
-        durationValue = cleanNumbers[cleanNumbers.length - 1];
-      }
 
       if (!isNaN(engLat) && !isNaN(engLng)) {
         const numberIcon = L.divIcon({
           className: "custom-number-icon",
           html: `<div class="marker-number">${index + 1}</div>`,
-          iconSize: [24, 24],
-          iconAnchor: [12, 12],
+          iconSize: [24, 24], 
+          iconAnchor: [12, 12], 
           popupAnchor: [0, -12],
         });
 
-        const marker = L.marker([engLat, engLng], { icon: numberIcon }).addTo(
-          map,
-        );
+        const marker = L.marker([engLat, engLng], { icon: numberIcon }).addTo(map);
 
-        // POPUP
-        const popupContent = `
-                    <div class="map-popup">
-                        <b style="font-size: 13px; display: block; margin-bottom: 2px;">${fullTitle}</b>
-                        <div style="font-size: 11px; color: #7f8c8d; margin-bottom: 5px;">
-                            ${formattedDate} <span style="color: #e67e22; font-weight: bold; margin-left: 5px;">${eventTime}</span>
-                        </div>
-                        <div style="font-size: 11px; color: #95a5a6;">
-                            KM: <b>${mileageValue}</b> | Min: <b>${durationValue}</b>
-                        </div>
-                    </div>
-                `;
+        const popupContent = `<div class="map-popup">
+          <b style="font-size: 13px; display: block; margin-bottom: 2px;">${fullTitle}</b>
+          <div style="font-size: 11px; color: #7f8c8d; margin-bottom: 5px;">
+            ${formattedDate} <span style="color: #e67e22; font-weight: bold; margin-left: 5px;">${eventTime}</span>
+          </div>
+        </div>`;
         marker.bindPopup(popupContent, { closeButton: false });
 
-        // Card in the list
         const item = document.createElement("div");
         item.className = "route-item";
         item.innerHTML = `
-                    <b>${fullTitle}</b>
-                    <div style="font-size: 0.85em; color: #7f8c8d; margin: 3px 0 7px 0;">
-                        <span>📅 ${formattedDate}</span>
-                        <span style="margin-left: 12px; color: #e67e22; font-weight: 500;">🕒 ${eventTime}</span>
-                    </div>
-                    <div class="route-data-row" style="display: flex; gap: 15px; font-size: 0.9em; color: #2c3e50;">
-                        <span>KM: <b>${mileageValue}</b></span>
-                        <span>Min: <b>${durationValue}</b></span>
-                    </div>
-                `;
+          <b>${fullTitle}</b>
+          <div style="font-size: 0.85em; color: #7f8c8d; margin: 3px 0 7px 0;">
+            <span>📅 ${formattedDate}</span>
+            <span style="margin-left: 12px; color: #e67e22; font-weight: 500;">🕒 ${eventTime}</span>
+          </div>`;
 
         const setHighlight = (state) => {
           if (marker._icon) {
             const inner = marker._icon.querySelector(".marker-number");
-            if (inner)
-              inner.style.filter = state
-                ? "hue-rotate(150deg) brightness(1.5)"
-                : "";
+            if (inner) inner.style.filter = state ? "hue-rotate(150deg) brightness(1.5)" : "";
           }
+          if (state) item.classList.add("highlight-list");
+          else item.classList.remove("highlight-list");
         };
 
-        // Interactive: List item events
-        item.onmouseenter = () => {
-          setHighlight(true);
-          marker.openPopup();
-        };
-        item.onmouseleave = () => {
-          setHighlight(false);
-          marker.closePopup();
-        };
-        item.onclick = () => {
-          map.flyTo([engLat, engLng], 16);
-          marker.openPopup();
-        };
+        item.onmouseenter = () => { setHighlight(true); marker.openPopup(); };
+        item.onmouseleave = () => { setHighlight(false); marker.closePopup(); };
+        item.onclick = () => { map.flyTo([engLat, engLng], 16); marker.openPopup(); };
 
-        // Interactive: Marker events
         marker.on("mouseover", function () {
           setHighlight(true);
           this.openPopup();
-          item.classList.add("highlight-list");
           item.scrollIntoView({ behavior: "smooth", block: "nearest" });
         });
         marker.on("mouseout", function () {
           setHighlight(false);
           this.closePopup();
-          item.classList.remove("highlight-list");
         });
         marker.on("click", function () {
           map.flyTo([engLat, engLng], 16);

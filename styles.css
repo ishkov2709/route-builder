@@ -151,3 +151,139 @@ button:hover {
   font-size: 12px;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 }
+
+/* --- MENU & MODAL STYLES --- */
+.menu-container {
+  margin-left: auto;
+  position: relative;
+}
+
+.menu-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid white;
+  width: auto;
+  padding: 8px 15px;
+  font-size: 14px;
+}
+
+.menu-dropdown {
+  display: none;
+  position: absolute;
+  right: 0;
+  top: 45px;
+  background: white;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+  border-radius: 8px;
+  z-index: 2000;
+  width: 220px;
+  overflow: hidden;
+}
+
+.menu-dropdown button {
+  background: white;
+  color: #2c3e50;
+  border: none;
+  border-radius: 0;
+  text-align: left;
+  padding: 12px 15px;
+  font-size: 14px;
+  border-bottom: 1px solid #eee;
+}
+
+.menu-dropdown button:hover {
+  background: #f0fff4;
+  transform: none;
+}
+
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 3000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.5);
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-content {
+  background: white;
+  padding: 25px;
+  border-radius: 12px;
+  width: 350px;
+  position: relative;
+}
+
+.modal-content.wide {
+  width: 500px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.close-btn {
+  background: transparent;  /* Фон прозрачный по умолчанию */
+  border: none;
+  color: #95a5a6;           /* Серый цвет крестика */
+  font-size: 16px;
+  cursor: pointer;
+  width: 30px;              /* Фиксированный размер */
+  height: 30px;
+  border-radius: 6px;       /* Квадрат со скруглением */
+  display: flex;            /* Центровка */
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: all 0.2s ease;
+  line-height: 1;
+}
+
+.close-btn:hover {
+  background: #27ae60;      /* Зеленый фон только при наведении */
+  color: #ffffff;           /* Белый крестик только при наведении */
+  /* transform удален, кнопка не дергается */
+}
+
+#route-name-input {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 20px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+}
+
+.btn-save-confirm {
+  background: #27ae60;
+}
+
+.saved-route-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  border-bottom: 1px solid #eee;
+}
+
+.saved-route-info {
+  font-size: 14px;
+  color: #2c3e50;
+  font-weight: 500;
+}
+
+.saved-route-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-show { background: #3498db; width: auto; font-size: 12px; padding: 6px 10px; }
+.btn-del { background: #e74c3c; width: auto; font-size: 12px; padding: 6px 10px; }

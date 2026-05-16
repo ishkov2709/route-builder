@@ -172,7 +172,7 @@ button:hover {
   right: 0;
   top: 45px;
   background: white;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
   border-radius: 8px;
   z-index: 2000;
   width: 220px;
@@ -203,7 +203,7 @@ button:hover {
   top: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0,0,0,0.5);
+  background: rgba(0, 0, 0, 0.5);
   align-items: center;
   justify-content: center;
 }
@@ -284,5 +284,22 @@ button:hover {
   gap: 8px;
 }
 
-.btn-show { background: #3498db; width: auto; font-size: 12px; padding: 6px 10px; }
-.btn-del { background: #e74c3c; width: auto; font-size: 12px; padding: 6px 10px; }
+.btn-show {
+  background: #3498db;
+  width: auto;
+  font-size: 12px;
+  padding: 6px 10px;
+}
+.btn-del {
+  background: #e74c3c;
+  width: auto;
+  font-size: 12px;
+  padding: 6px 10px;
+}
+
+.highlight-error-active {
+  background-color: #ffdbdb !important;
+  border-color: #e74c3c !important;
+  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.2) !important;
+  transform: scale(1.02);
+}

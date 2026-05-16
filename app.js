@@ -125,195 +125,95 @@ function buildRoute() {
   const rawText = document.getElementById("input").value.trim();
   if (!rawText) return;
 
-  // Разделяем записи по дате (ГГГГ-ММ-ДД)
-  const entries = rawText
-    .split(/(?=\b202\d-\d{2}-\d{2}\b)/)
-    .filter((e) => e.trim().length > 20);
+  // 1. Получаем данные из внешнего парсера
+  const routeData = parseRawData(rawText);
 
   const listContainer = document.getElementById("route-list");
   let latlngs = [];
 
-  entries.forEach((line, index) => {
-    const coordRegex = /(\d{2}\.\d+),\s+(\d{2}\.\d+)/g;
-    const matches = [...line.matchAll(coordRegex)];
+  routeData.forEach((data) => {
+    if (data.lat && data.lng) {
+      const isRed = data.isError;
+      const markerColor = isRed ? "#e74c3c" : "#27ae60";
 
-    // Проверка статуса координат
-    const isNotInCoords = line.includes("Завдання не у координатах");
+      // 2. Создаем иконку маркера
+      const numberIcon = L.divIcon({
+        className: "custom-number-icon",
+        html: `<div class="marker-number" style="background-color: ${markerColor}; transition: all 0.3s ease;">${data.id}</div>`,
+        iconSize: [24, 24],
+        iconAnchor: [12, 12],
+      });
 
-    if (matches.length >= 2) {
-      const engLat = parseFloat(matches[1][1]);
-      const engLng = parseFloat(matches[1][2]);
-
-      // Обработка строк: убираем табуляцию, чтобы она не ломала логику
-      const cleanLine = line.replace(/\t/g, " ");
-      const lines = cleanLine
-        .split("\n")
-        .map((l) => l.trim())
-        .filter((l) => l.length > 0);
-
-      // 1. Парсинг Даты и Времени (через RegExp, чтобы не зависеть от табов)
-      const dateTimeMatch = cleanLine.match(
-        /(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2}:\d{2})/,
-      );
-      let formattedDate = "00.00.0000";
-      let eventTime = "00:00:00";
-      if (dateTimeMatch) {
-        const d = dateTimeMatch[1].split("-");
-        formattedDate = `${d[2]}.${d[1]}.${d[0]}`;
-        eventTime = dateTimeMatch[2];
-      }
-
-      // 2. Парсинг KM и Min (ищем числа в нужных строках)
-      let kmValue = "0";
-      let minValue = "0";
-      const confirmLineIndex = lines.findIndex((l) =>
-        l.includes("підтверджені"),
+      const marker = L.marker([data.lat, data.lng], { icon: numberIcon }).addTo(
+        map,
       );
 
-      if (confirmLineIndex !== -1) {
-        const kmMatch = lines[confirmLineIndex].match(/(\d+[.,]\d+|\d+)/);
-        if (kmMatch) kmValue = kmMatch[0];
+      // 3. Создаем попап и элемент списка через внешние функции
+      marker.bindPopup(createMapPopup(data), { closeButton: false });
+      const item = createListItem(data);
 
-        if (lines[confirmLineIndex + 1]) {
-          const minMatch =
-            lines[confirmLineIndex + 1].match(/(\d+[.,]\d+|\d+)/);
-          if (minMatch) minValue = minMatch[0];
-        }
-      }
-
-      // 3. Формируем Заголовок (fullTitle)
-      let fullTitle = "Без назви";
-      if (lines[0]) {
-        fullTitle = lines[0]
-          .replace(/\d{4}-\d{2}-\d{2}/, "")
-          .replace(/\d{2}:\d{2}:\d{2}/, "")
-          .replace(/\b\d{7,10}\b/g, "") // Удаляем ID
-          .replace(/\s+/g, " ")
-          .trim();
-      }
-      // Если первая строка пустая, пробуем взять начало второй
-      if (!fullTitle && lines[1]) {
-        fullTitle = lines[1].split(/[0-9]{2}\.[0-9]+/)[0].trim();
-      }
-
-      if (!isNaN(engLat) && !isNaN(engLng)) {
-        const warningColor = "#e74c3c";
-        const defaultColor = "#27ae60";
-        const markerColor = isNotInCoords ? warningColor : defaultColor;
-
-        // Создание маркера
-        const numberIcon = L.divIcon({
-          className: "custom-number-icon",
-          html: `<div class="marker-number" style="background-color: ${markerColor};">${index + 1}</div>`,
-          iconSize: [24, 24],
-          iconAnchor: [12, 12],
-          popupAnchor: [0, -12],
-        });
-
-        const marker = L.marker([engLat, engLng], { icon: numberIcon }).addTo(
-          map,
-        );
-
-        // Попап на карте
-        const statusNote = isNotInCoords
-          ? `<div style="color: ${warningColor}; font-weight: bold; font-size: 10px; margin-top: 5px;">⚠️ Завдання не у координатах</div>`
-          : "";
-        marker.bindPopup(
-          `
-                    <div class="map-popup">
-                        <b>${fullTitle}</b>
-                        <div style="font-size: 11px; color: #7f8c8d;">${formattedDate} <span style="color: #e67e22;">${eventTime}</span></div>
-                        <div class="map-data-row" style="display: flex; justify-content: space-between; color: ${defaultColor}; font-weight: bold; margin-top:5px; font-size: 11px;">
-                            <span>KM: ${kmValue}</span><span>Min: ${minValue}</span>
-                        </div>
-                        ${statusNote}
-                    </div>`,
-          { closeButton: false },
-        );
-
-        // Элемент бокового списка
-        const item = document.createElement("div");
-        item.className = "route-item";
-        if (isNotInCoords) {
-          item.style.borderLeftColor = warningColor;
-          item.style.backgroundColor = "#fff5f5";
-        }
-
-        item.innerHTML = `
-                    <b>${fullTitle}</b>
-                    <div style="font-size: 0.85em; color: #7f8c8d; margin: 3px 0 7px 0;">
-                        <span>📅 ${formattedDate}</span>
-                        <span style="margin-left: 12px; color: #e67e22; font-weight: 500;">🕒 ${eventTime}</span>
-                    </div>
-                    <div class="route-data-row" style="display: flex; justify-content: space-between; align-items: center;">
-                        <span><b style="${isNotInCoords ? "color:" + warningColor : ""}">KM:</b> ${kmValue}</span>
-                        <span><b style="${isNotInCoords ? "color:" + warningColor : ""}">Min:</b> ${minValue}</span>
-                    </div>`;
-
-        // Функции клика
-        const focusPoint = () => {
-          map.flyTo([engLat, engLng], 16);
-          marker.openPopup();
-        };
-        item.onclick = focusPoint;
-        marker.on("click", focusPoint);
-
-        // Логика Ховера
-        const setHighlight = (state) => {
-          if (marker._icon) {
-            const inner = marker._icon.querySelector(".marker-number");
-            if (inner) {
-              if (state) {
-                inner.style.filter = isNotInCoords
-                  ? "brightness(0.8) saturate(1.4)"
-                  : "hue-rotate(150deg) brightness(1.5)";
-              } else {
-                inner.style.filter = "";
-              }
+      // --- Логика интерактивности (Ховер) ---
+      const setHighlight = (active) => {
+        if (marker._icon) {
+          const inner = marker._icon.querySelector(".marker-number");
+          if (inner) {
+            if (active) {
+              // Яркая подсветка
+              inner.style.filter = isRed
+                ? "brightness(1.2) saturate(2) drop-shadow(0 0 5px #ff0000)"
+                : "brightness(1.2) saturate(2) drop-shadow(0 0 5px #00ff00)";
+              inner.style.transform = "scale(1.2)";
+            } else {
+              inner.style.filter = "";
+              inner.style.transform = "scale(1)";
             }
           }
-          if (state) {
-            item.classList.add(
-              isNotInCoords ? "highlight-error-active" : "highlight-list",
-            );
-          } else {
-            item.classList.remove("highlight-list", "highlight-error-active");
-          }
-        };
+        }
 
-        item.onmouseenter = () => {
-          setHighlight(true);
+        if (active) {
+          item.style.boxShadow = "0 4px 12px rgba(0,0,0,0.15)";
           marker.openPopup();
-        };
-        item.onmouseleave = () => {
-          setHighlight(false);
+        } else {
+          item.style.boxShadow = "";
           marker.closePopup();
-        };
+        }
+      };
 
-        marker.on("mouseover", function () {
-          setHighlight(true);
-          this.openPopup();
-          item.scrollIntoView({ behavior: "smooth", block: "nearest" });
-        });
-        marker.on("mouseout", function () {
-          setHighlight(false);
-          this.closePopup();
-        });
+      // События для списка
+      item.onmouseenter = () => setHighlight(true);
+      item.onmouseleave = () => setHighlight(false);
+      item.onclick = () => {
+        map.flyTo([data.lat, data.lng], 16);
+        marker.openPopup();
+      };
 
-        markers.push(marker);
-        latlngs.push([engLat, engLng]);
-        listContainer.appendChild(item);
-      }
+      // --- События для МАРКЕРА (Поинта) ---
+      marker.on("click", () => {
+        // Приближаем карту при нажатии на поинт
+        map.flyTo([data.lat, data.lng], 16);
+        marker.openPopup();
+      });
+
+      marker.on("mouseover", () => {
+        setHighlight(true);
+        item.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      });
+      marker.on("mouseout", () => setHighlight(false));
+
+      markers.push(marker);
+      latlngs.push([data.lat, data.lng]);
+      listContainer.appendChild(item);
     }
   });
 
+  // 5. Линия маршрута
   if (latlngs.length >= 2) {
     polyline = L.polyline(latlngs, {
       color: "#27ae60",
-      weight: 4,
-      opacity: 0.8,
+      weight: 3,
       dashArray: "5, 10",
+      opacity: 0.7,
     }).addTo(map);
-    map.fitBounds(polyline.getBounds(), { padding: [50, 50] });
+    map.fitBounds(polyline.getBounds(), { padding: [40, 40] });
   }
 }

@@ -125,8 +125,9 @@ function buildRoute() {
   const rawText = document.getElementById("input").value.trim();
   if (!rawText) return;
 
+  // Разделяем записи по дате (ГГГГ-ММ-ДД)
   const entries = rawText
-    .split(/(?=202\d-\d{2}-\d{2})/)
+    .split(/(?=\b202\d-\d{2}-\d{2}\b)/)
     .filter((e) => e.trim().length > 20);
 
   const listContainer = document.getElementById("route-list");
@@ -136,45 +137,43 @@ function buildRoute() {
     const coordRegex = /(\d{2}\.\d+),\s+(\d{2}\.\d+)/g;
     const matches = [...line.matchAll(coordRegex)];
 
+    // Проверка статуса координат
     const isNotInCoords = line.includes("Завдання не у координатах");
 
     if (matches.length >= 2) {
       const engLat = parseFloat(matches[1][1]);
       const engLng = parseFloat(matches[1][2]);
 
-      const lines = line
+      // Обработка строк: убираем табуляцию, чтобы она не ломала логику
+      const cleanLine = line.replace(/\t/g, " ");
+      const lines = cleanLine
         .split("\n")
         .map((l) => l.trim())
         .filter((l) => l.length > 0);
 
-      // 1. Извлекаем дату и время из первой строки
-      const firstLine = lines[0] || "";
-      const dateTimeMatch = firstLine.match(
+      // 1. Парсинг Даты и Времени (через RegExp, чтобы не зависеть от табов)
+      const dateTimeMatch = cleanLine.match(
         /(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2}:\d{2})/,
       );
-      let formattedDate = "";
-      let eventTime = "";
-
+      let formattedDate = "00.00.0000";
+      let eventTime = "00:00:00";
       if (dateTimeMatch) {
-        const [_, rawDate, time] = dateTimeMatch;
-        const d = rawDate.split("-");
+        const d = dateTimeMatch[1].split("-");
         formattedDate = `${d[2]}.${d[1]}.${d[0]}`;
-        eventTime = time;
+        eventTime = dateTimeMatch[2];
       }
 
-      // 2. Парсим KM и Min (ищем числа в строке с подтверждением)
+      // 2. Парсинг KM и Min (ищем числа в нужных строках)
       let kmValue = "0";
       let minValue = "0";
-
       const confirmLineIndex = lines.findIndex((l) =>
         l.includes("підтверджені"),
       );
+
       if (confirmLineIndex !== -1) {
-        // Ищем число (с запятой или точкой) в строке "підтверджені"
         const kmMatch = lines[confirmLineIndex].match(/(\d+[.,]\d+|\d+)/);
         if (kmMatch) kmValue = kmMatch[0];
 
-        // Ищем Min в следующей строке
         if (lines[confirmLineIndex + 1]) {
           const minMatch =
             lines[confirmLineIndex + 1].match(/(\d+[.,]\d+|\d+)/);
@@ -182,9 +181,27 @@ function buildRoute() {
         }
       }
 
-      if (!isNaN(engLat) && !isNaN(engLng)) {
-        const markerColor = isNotInCoords ? "#e74c3c" : "#27ae60";
+      // 3. Формируем Заголовок (fullTitle)
+      let fullTitle = "Без назви";
+      if (lines[0]) {
+        fullTitle = lines[0]
+          .replace(/\d{4}-\d{2}-\d{2}/, "")
+          .replace(/\d{2}:\d{2}:\d{2}/, "")
+          .replace(/\b\d{7,10}\b/g, "") // Удаляем ID
+          .replace(/\s+/g, " ")
+          .trim();
+      }
+      // Если первая строка пустая, пробуем взять начало второй
+      if (!fullTitle && lines[1]) {
+        fullTitle = lines[1].split(/[0-9]{2}\.[0-9]+/)[0].trim();
+      }
 
+      if (!isNaN(engLat) && !isNaN(engLng)) {
+        const warningColor = "#e74c3c";
+        const defaultColor = "#27ae60";
+        const markerColor = isNotInCoords ? warningColor : defaultColor;
+
+        // Создание маркера
         const numberIcon = L.divIcon({
           className: "custom-number-icon",
           html: `<div class="marker-number" style="background-color: ${markerColor};">${index + 1}</div>`,
@@ -197,48 +214,51 @@ function buildRoute() {
           map,
         );
 
+        // Попап на карте
         const statusNote = isNotInCoords
-          ? `<div style="color: #e74c3c; font-weight: bold; font-size: 10px; margin-top: 5px;">⚠️ Завдання не у координатах</div>`
+          ? `<div style="color: ${warningColor}; font-weight: bold; font-size: 10px; margin-top: 5px;">⚠️ Завдання не у координатах</div>`
           : "";
-        const popupContent = `
-          <div class="map-popup">
-            <b style="font-size: 13px; display: block; margin-bottom: 2px;">${fullTitle}</b>
-            <div style="font-size: 11px; color: #7f8c8d; margin-bottom: 5px;">
-              ${formattedDate} <span style="color: #e67e22; font-weight: bold; margin-left: 5px;">${eventTime}</span>
-            </div>
-            <div style="font-size: 11px; color: #27ae60; font-weight: bold;">
-              KM: ${kmValue} | Min: ${minValue}
-            </div>
-            ${statusNote}
-          </div>`;
-        marker.bindPopup(popupContent, { closeButton: false });
+        marker.bindPopup(
+          `
+                    <div class="map-popup">
+                        <b>${fullTitle}</b>
+                        <div style="font-size: 11px; color: #7f8c8d;">${formattedDate} <span style="color: #e67e22;">${eventTime}</span></div>
+                        <div class="map-data-row" style="display: flex; justify-content: space-between; color: ${defaultColor}; font-weight: bold; margin-top:5px; font-size: 11px;">
+                            <span>KM: ${kmValue}</span><span>Min: ${minValue}</span>
+                        </div>
+                        ${statusNote}
+                    </div>`,
+          { closeButton: false },
+        );
 
+        // Элемент бокового списка
         const item = document.createElement("div");
         item.className = "route-item";
         if (isNotInCoords) {
-          item.style.borderLeftColor = "#e74c3c";
+          item.style.borderLeftColor = warningColor;
           item.style.backgroundColor = "#fff5f5";
         }
 
         item.innerHTML = `
-          <b>${fullTitle}</b>
-          <div style="font-size: 0.85em; color: #7f8c8d; margin: 3px 0 7px 0;">
-            <span>📅 ${formattedDate}</span>
-            <span style="margin-left: 12px; color: #e67e22; font-weight: 500;">🕒 ${eventTime}</span>
-          </div>
-          <div class="route-data-row">
-            <span><b style="${isNotInCoords ? "color: #e74c3c;" : ""}">KM:</b> ${kmValue}</span>
-            <span><b style="${isNotInCoords ? "color: #e74c3c;" : ""}">Min:</b> ${minValue}</span>
-          </div>`;
+                    <b>${fullTitle}</b>
+                    <div style="font-size: 0.85em; color: #7f8c8d; margin: 3px 0 7px 0;">
+                        <span>📅 ${formattedDate}</span>
+                        <span style="margin-left: 12px; color: #e67e22; font-weight: 500;">🕒 ${eventTime}</span>
+                    </div>
+                    <div class="route-data-row" style="display: flex; justify-content: space-between; align-items: center;">
+                        <span><b style="${isNotInCoords ? "color:" + warningColor : ""}">KM:</b> ${kmValue}</span>
+                        <span><b style="${isNotInCoords ? "color:" + warningColor : ""}">Min:</b> ${minValue}</span>
+                    </div>`;
 
-        const flyToPoint = () => {
+        // Функции клика
+        const focusPoint = () => {
           map.flyTo([engLat, engLng], 16);
           marker.openPopup();
         };
+        item.onclick = focusPoint;
+        marker.on("click", focusPoint);
 
-        item.onclick = flyToPoint;
-        marker.on("click", flyToPoint);
-
+        // Логика Ховера
         const setHighlight = (state) => {
           if (marker._icon) {
             const inner = marker._icon.querySelector(".marker-number");
@@ -252,13 +272,10 @@ function buildRoute() {
               }
             }
           }
-
           if (state) {
-            if (isNotInCoords) {
-              item.classList.add("highlight-error-active");
-            } else {
-              item.classList.add("highlight-list");
-            }
+            item.classList.add(
+              isNotInCoords ? "highlight-error-active" : "highlight-list",
+            );
           } else {
             item.classList.remove("highlight-list", "highlight-error-active");
           }

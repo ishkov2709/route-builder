@@ -146,6 +146,23 @@ function buildRoute() {
         .split("\n")
         .map((l) => l.trim())
         .filter((l) => l.length > 0);
+
+      // 1. Извлекаем дату и время из первой строки
+      const firstLine = lines[0] || "";
+      const dateTimeMatch = firstLine.match(
+        /(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2}:\d{2})/,
+      );
+      let formattedDate = "";
+      let eventTime = "";
+
+      if (dateTimeMatch) {
+        const [_, rawDate, time] = dateTimeMatch;
+        const d = rawDate.split("-");
+        formattedDate = `${d[2]}.${d[1]}.${d[0]}`;
+        eventTime = time;
+      }
+
+      // 2. Парсим KM и Min (ищем числа в строке с подтверждением)
       let kmValue = "0";
       let minValue = "0";
 
@@ -153,28 +170,17 @@ function buildRoute() {
         l.includes("підтверджені"),
       );
       if (confirmLineIndex !== -1) {
+        // Ищем число (с запятой или точкой) в строке "підтверджені"
         const kmMatch = lines[confirmLineIndex].match(/(\d+[.,]\d+|\d+)/);
         if (kmMatch) kmValue = kmMatch[0];
 
+        // Ищем Min в следующей строке
         if (lines[confirmLineIndex + 1]) {
           const minMatch =
             lines[confirmLineIndex + 1].match(/(\d+[.,]\d+|\d+)/);
           if (minMatch) minValue = minMatch[0];
         }
       }
-
-      const allWords = line.replace(/\n/g, " ").split(/\s+/);
-      let rawDate = allWords[0] || "";
-      let dateParts = rawDate.split("-");
-      let formattedDate =
-        dateParts.length === 3
-          ? `${dateParts[2]}.${dateParts[1]}.${dateParts[0]}`
-          : rawDate;
-      let eventTime =
-        allWords.find((w) => (w.match(/:/g) || []).length === 2) || "";
-      let preCoordText = line.split(matches[0][0])[0].trim();
-      let headerParts = preCoordText.split(/\s+/);
-      let fullTitle = headerParts.slice(3).join(" ");
 
       if (!isNaN(engLat) && !isNaN(engLng)) {
         const markerColor = isNotInCoords ? "#e74c3c" : "#27ae60";
